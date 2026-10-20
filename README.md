@@ -97,6 +97,8 @@ lumo-ai/
 - [Lumo AI: company presentation (English)](docs/Lumo_AI_presentation_EN.pptx)
 - [Lumo AI: техническая презентация (на русском)](docs/Lumo_AI_tech_RU.pptx)
 
+PDF versions for viewing on any device: [EN](docs/Lumo_AI_presentation_EN.pdf) · [RU](docs/Lumo_AI_tech_RU.pdf)
+
 ---
 
 Author: Varvara Surnova · [@surnova2703](https://github.com/surnova2703)
