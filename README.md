@@ -95,10 +95,13 @@ lumo-ai/
 
 ## Presentations
 
-- [Lumo AI: company presentation (English)](docs/Lumo_AI_presentation_EN.pptx)
-- [Lumo AI: техническая презентация (на русском)](docs/Lumo_AI_tech_RU.pptx)
+The start screen has an **About the product** button: choose English or Russian and the slides open right inside the app.
 
-PDF versions for viewing on any device: [EN](docs/Lumo_AI_presentation_EN.pdf) · [RU](docs/Lumo_AI_tech_RU.pdf)
+| Presentation | PowerPoint | PDF |
+|---|---|---|
+| Product presentation (English) | [pptx](docs/Lumo_AI_presentation_EN.pptx) | [pdf](docs/Lumo_AI_presentation_EN.pdf) |
+| Презентация о продукте (русский) | [pptx](docs/Lumo_AI_presentation_RU.pptx) | [pdf](docs/Lumo_AI_presentation_RU.pdf) |
+| Техническая презентация (русский) | [pptx](docs/Lumo_AI_tech_RU.pptx) | [pdf](docs/Lumo_AI_tech_RU.pdf) |
 
 ---
 

@@ -137,6 +137,28 @@
   .welcome .pres .pbtn:hover { border-color: var(--accent); }
   .welcome .pres .pbtn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
+  /* ---------- выбор языка презентации ---------- */
+  .chooser { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(10,12,28,.55); }
+  .chooser.open { display: flex; }
+  .chooser-box {
+    width: min(380px, 100%); background: var(--panel); color: var(--ink); border-radius: 18px; padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35); position: relative;
+  }
+  .chooser-box h3 { margin: 0 0 4px; font-size: 20px; }
+  .chooser-box p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  .chooser-box .close-x { position: absolute; top: 12px; right: 12px; color: var(--muted); }
+  .chooser-box .close-x:hover { background: var(--bg); }
+  .lang-opt {
+    width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 10px;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink);
+    font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; text-align: left;
+  }
+  .lang-opt:hover { border-color: var(--accent); }
+  .lang-opt .code { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--accent); font-size: 13px; font-weight: 700; flex: none; }
+  .lang-opt .sub { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .tech-link { display: block; margin-top: 6px; padding: 6px 0 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .tech-link:hover { color: var(--ink); }
+
   /* ---------- просмотр презентаций ---------- */
   .viewer {
     position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column;
@@ -237,6 +259,16 @@
   </div>
   <div class="dots" id="vDots"></div>
 </div>
+<div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
+  <div class="chooser-box">
+    <button class="icon-btn close-x" id="chClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="chTitle" data-i18n="chooseTitle"></h3>
+    <p data-i18n="chooseSub"></p>
+    <button class="lang-opt" data-deck="en"><span class="code">EN</span><span>English<span class="sub">9 slides</span></span></button>
+    <button class="lang-opt" data-deck="ru"><span class="code">RU</span><span>Русский<span class="sub">9 слайдов</span></span></button>
+    <button class="tech-link" data-deck="tech" data-i18n="presTech"></button>
+  </div>
+</div>
 
 <main>
   <header>
@@ -275,7 +307,8 @@ const STRINGS = {
     hello: "Привет! Я Lumo", typing: "Lumo думает…", del: "Удалить", confirmDel: "Удалить этот чат?",
     error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
-    presProduct: "Презентация о продукте (EN)", presTech: "Техническая презентация",
+    presProduct: "О продукте", presTech: "Техническая презентация (RU) →",
+    chooseTitle: "Презентация о Lumo", chooseSub: "На каком языке показать?",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
     hints: {
       chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
@@ -290,7 +323,8 @@ const STRINGS = {
     hello: "Hi! I’m Lumo", typing: "Lumo is thinking…", del: "Delete", confirmDel: "Delete this chat?",
     error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
-    presProduct: "Product presentation", presTech: "Technical deck (RU)",
+    presProduct: "About the product", presTech: "Technical deck (Russian) →",
+    chooseTitle: "Lumo presentation", chooseSub: "Which language would you like?",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
     hints: {
       chat: "Ask me anything — I’ll answer and remember the context of this chat.",
@@ -359,8 +393,7 @@ const DECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 function welcomeHtml() {
   return `<div class="welcome"><div class="big-orb"></div><h2>${t("hello")}</h2><p>${t("hints")[state.mode]}</p>
     <div class="pres">
-      <button class="pbtn primary" data-deck="en">${DECK_ICON}${t("presProduct")}</button>
-      <button class="pbtn" data-deck="ru">${DECK_ICON}${t("presTech")}</button>
+      <button class="pbtn primary" data-choose>${DECK_ICON}${t("presProduct")}</button>
     </div></div>`;
 }
 function renderChatList() {
@@ -542,7 +575,8 @@ $("langBtn").onclick = () => {
 // ---------- просмотр презентаций ----------
 const DECKS = {
   en: { title: "Lumo AI — Product presentation", folder: "en", count: 9, pdf: "Lumo_AI_presentation_EN.pdf" },
-  ru: { title: "Lumo AI — Техническая презентация", folder: "ru", count: 13, pdf: "Lumo_AI_tech_RU.pdf" },
+  ru: { title: "Lumo AI — Презентация о продукте", folder: "ru", count: 9, pdf: "Lumo_AI_presentation_RU.pdf" },
+  tech: { title: "Lumo AI — Техническая презентация", folder: "tech", count: 13, pdf: "Lumo_AI_tech_RU.pdf" },
 };
 const viewer = { deck: null, i: 0 };
 
@@ -579,10 +613,15 @@ function showSlide(n) {
 
 function closeDeck() { $("viewer").classList.remove("open"); viewer.deck = null; }
 
-$("messages").addEventListener("click", (e) => {
+function openChooser() { $("chooser").classList.add("open"); $("chooser").querySelector(`.lang-opt[data-deck="${lang}"]`)?.focus(); }
+function closeChooser() { $("chooser").classList.remove("open"); }
+$("messages").addEventListener("click", (e) => { if (e.target.closest("[data-choose]")) openChooser(); });
+$("chooser").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-deck]");
-  if (btn) openDeck(btn.dataset.deck);
+  if (btn) { closeChooser(); openDeck(btn.dataset.deck); }
+  else if (e.target === $("chooser")) closeChooser();
 });
+$("chClose").onclick = closeChooser;
 $("vPrev").onclick = () => showSlide(viewer.i - 1);
 $("vNext").onclick = () => showSlide(viewer.i + 1);
 $("vClose").onclick = closeDeck;
@@ -591,6 +630,7 @@ $("vImg").onclick = (e) => {
   showSlide(viewer.i + (e.clientX - r.left < r.width / 3 ? -1 : 1));
 };
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("chooser").classList.contains("open")) { closeChooser(); return; }
   if (!viewer.deck) return;
   if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); showSlide(viewer.i + 1); }
   else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); showSlide(viewer.i - 1); }
