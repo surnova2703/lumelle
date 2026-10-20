@@ -202,11 +202,33 @@
     font: inherit; font-size: 15px; line-height: 1.4; outline: none;
   }
   textarea:focus { border-color: var(--accent); }
+  .attach {
+    width: 46px; height: 46px; flex: none; display: grid; place-items: center; border-radius: 12px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--bg); color: var(--muted);
+  }
+  .attach:hover { color: var(--ink); border-color: var(--accent); }
+  .attach svg { width: 22px; height: 22px; }
+  .thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .thumbs:empty { display: none; }
+  .thumb { position: relative; width: 64px; height: 64px; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+  .thumb button {
+    position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--ink); color: var(--bg); font-size: 14px; line-height: 22px; padding: 0;
+  }
+  .composer.drag textarea { border-color: var(--accent); border-style: dashed; }
+  .msg-images { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .msg-images img { max-width: 220px; max-height: 220px; border-radius: 10px; cursor: zoom-in; display: block; }
+  .msg.user .msg-images:last-child { margin-bottom: 0; }
+  .lightbox { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(8,9,20,.92); cursor: zoom-out; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
   .send {
     height: 46px; padding: 0 20px; border: 0; border-radius: 12px; cursor: pointer;
     background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600;
   }
   .send:disabled { opacity: .5; cursor: default; }
+  .send-icon { display: none; width: 22px; height: 22px; }
   .options { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: var(--muted); }
   .options label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 
@@ -226,7 +248,9 @@
     .composer { padding-left: 12px; padding-right: 12px; }
     .msg { max-width: 92%; }
     textarea { font-size: 16px; }
-    .send { padding: 0 14px; }
+    .send { width: 46px; padding: 0; display: grid; place-items: center; flex: none; }
+    .send-label { display: none; }
+    .send-icon { display: block; }
   }
   @media (max-width: 420px) {
     header h1 { display: none; }
@@ -259,6 +283,7 @@
   </div>
   <div class="dots" id="vDots"></div>
 </div>
+<div class="lightbox" id="lightbox"><img id="lightImg" alt=""></div>
 <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
   <div class="chooser-box">
     <button class="icon-btn close-x" id="chClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -284,9 +309,14 @@
   <div class="messages" id="messages"></div>
 
   <div class="composer">
+    <div class="thumbs" id="thumbs"></div>
     <form id="form">
+      <label class="attach" id="attachBtn" data-i18n-title="attach">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      </label>
       <textarea id="input" rows="1"></textarea>
-      <button class="send" id="send" type="submit" data-i18n="send"></button>
+      <button class="send" id="send" type="submit"><span class="send-label" data-i18n="send"></span><svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
     <div class="options">
       <label><input type="checkbox" id="think"> <span data-i18n="think"></span></label>
@@ -309,6 +339,7 @@ const STRINGS = {
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
     presProduct: "О продукте", presTech: "Техническая презентация (RU) →",
     chooseTitle: "Презентация о Lumo", chooseSub: "На каком языке показать?",
+    attach: "Прикрепить картинку (или вставь скриншот: Cmd+V)", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
     hints: {
       chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
@@ -325,6 +356,7 @@ const STRINGS = {
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
     presProduct: "About the product", presTech: "Technical deck (Russian) →",
     chooseTitle: "Lumo presentation", chooseSub: "Which language would you like?",
+    attach: "Attach an image (or paste a screenshot: Cmd+V)", tooMany: "You can attach up to 4 images", removeImg: "Remove",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
     hints: {
       chat: "Ask me anything — I’ll answer and remember the context of this chat.",
@@ -421,17 +453,31 @@ function renderMessages(messages) {
     box.innerHTML = welcomeHtml();
     return;
   }
-  messages.forEach((m) => addMessage(m.role, m.content, false));
+  messages.forEach((m) => addMessage(m.role, m.content, false, m.images || []));
   box.scrollTop = box.scrollHeight;
 }
 
-function addMessage(role, content, scroll = true) {
+function addMessage(role, content, scroll = true, images = []) {
   const box = $("messages");
   box.querySelector(".welcome")?.remove();
   const div = document.createElement("div");
   div.className = "msg " + role;
   if (role === "assistant") div.innerHTML = renderMarkdown(content);
-  else div.textContent = content;
+  else {
+    if (images.length) {
+      const wrap = document.createElement("div");
+      wrap.className = "msg-images";
+      for (const b64 of images) {
+        const img = document.createElement("img");
+        img.src = "data:image/jpeg;base64," + b64;
+        img.alt = "";
+        img.onclick = () => { $("lightImg").src = img.src; $("lightbox").classList.add("open"); };
+        wrap.appendChild(img);
+      }
+      div.appendChild(wrap);
+    }
+    if (content) div.appendChild(document.createTextNode(content));
+  }
   box.appendChild(div);
   if (scroll) box.scrollTop = box.scrollHeight;
   return div;
@@ -447,7 +493,8 @@ function setMode(mode) {
 function setBusy(busy) {
   state.busy = busy;
   $("send").disabled = busy;
-  $("send").textContent = busy ? "…" : t("send");
+  $("send").querySelector(".send-label").textContent = busy ? "…" : t("send");
+  $("send").title = t("send");
 }
 
 // ---------- действия ----------
@@ -483,9 +530,9 @@ async function deleteChat(id) {
   await loadChats();
 }
 
-async function send(text) {
+async function send(text, images = []) {
   setBusy(true);
-  addMessage("user", text);
+  addMessage("user", text, true, images);
   const typing = document.createElement("div");
   typing.className = "typing";
   typing.innerHTML = "<span></span><span></span><span></span> " + t("typing");
@@ -499,7 +546,7 @@ async function send(text) {
     }
     const res = await api(`/chats/${state.current.id}/ask`, {
       method: "POST",
-      body: { text, think: $("think").checked },
+      body: { text, images, think: $("think").checked },
     });
     typing.remove();
     addMessage("assistant", res.answer);
@@ -508,7 +555,7 @@ async function send(text) {
     if (fresh) { state.current.title = fresh.title; $("chatTitle").textContent = fresh.title; }
   } catch (err) {
     typing.remove();
-    addMessage("error", t("error") + err.message + t("errorHint"));
+    addMessage("error", t("error") + err.message + (/not available/i.test(err.message) ? t("errorHint") : ""));
   } finally {
     setBusy(false);
     $("input").focus();
@@ -519,11 +566,72 @@ async function send(text) {
 $("form").onsubmit = (e) => {
   e.preventDefault();
   const text = $("input").value.trim();
-  if (!text || state.busy) return;
+  if ((!text && !pending.length) || state.busy) return;
+  const images = pending.slice();
+  pending = [];
+  renderThumbs();
   $("input").value = "";
   $("input").style.height = "";
-  send(text);
+  send(text, images);
 };
+
+// ---------- картинки ----------
+let pending = []; // base64 без префикса
+
+// уменьшаем картинку до 1600 px по длинной стороне и сжимаем в JPEG
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+    img.src = url;
+  });
+}
+
+async function addFiles(files) {
+  for (const f of files) {
+    if (!f.type.startsWith("image/")) continue;
+    if (pending.length >= 4) { alert(t("tooMany")); break; }
+    try { pending.push(await fileToBase64(f)); } catch (e) {}
+  }
+  renderThumbs();
+  $("input").focus();
+}
+
+function renderThumbs() {
+  const box = $("thumbs");
+  box.innerHTML = "";
+  pending.forEach((b64, i) => {
+    const d = document.createElement("div");
+    d.className = "thumb";
+    d.innerHTML = `<img src="data:image/jpeg;base64,${b64}" alt=""><button type="button" title="${t("removeImg")}">×</button>`;
+    d.querySelector("button").onclick = () => { pending.splice(i, 1); renderThumbs(); };
+    box.appendChild(d);
+  });
+}
+
+$("fileInput").onchange = (e) => { addFiles([...e.target.files]); e.target.value = ""; };
+$("input").addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/"));
+  if (files.length) { e.preventDefault(); addFiles(files); }
+});
+const composer = document.querySelector(".composer");
+["dragenter", "dragover"].forEach((ev) => composer.addEventListener(ev, (e) => { e.preventDefault(); composer.classList.add("drag"); }));
+["dragleave", "drop"].forEach((ev) => composer.addEventListener(ev, (e) => { e.preventDefault(); composer.classList.remove("drag"); }));
+composer.addEventListener("drop", (e) => addFiles([...e.dataTransfer.files]));
+$("lightbox").onclick = () => $("lightbox").classList.remove("open");
 
 $("input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {

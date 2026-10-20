@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen3:8b"
+MODEL = "qwen3:8b"         # модель для текста
+VISION_MODEL = "qwen3-vl:8b"  # модель для сообщений с картинками
+MAX_IMAGES = 4
+MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "lumo.db"
 HISTORY_LIMIT = 20  # сколько последних сообщений модель «помнит» в чате
@@ -24,17 +28,21 @@ MODES = {
         "Always reply in the same language as the user. "
         "Start with a short direct answer, then explain step by step if needed. "
         "Be logical and precise. If you are not sure about a fact, say so instead of guessing. "
+        "If the user sends an image (for example a screenshot of a test or a task), read all the text "
+        "in it carefully first. For test questions give the correct option, then a short explanation. "
         "Use the earlier messages of this conversation as context."
     ),
     "write": (
         "You are Lumo, a writing assistant. Write in the same language as the request. "
+        "If an image is attached, use what is in it as the material for the text. "
         "Follow the requested format, length and tone exactly. "
         "Structure the text clearly: a beginning, the main part and an ending. "
         "Return only the finished text, without comments about it."
     ),
     "translate": (
         "You are a professional translator. If the text is in Russian, translate it to English. "
-        "Otherwise translate it to Russian. Keep the meaning, tone and formatting. "
+        "Otherwise translate it to Russian. If an image is attached, translate the text in the image. "
+        "Keep the meaning, tone and formatting. "
         "Output only the translation, with no explanations."
     ),
 }
@@ -76,6 +84,10 @@ def init_db():
             );
             """
         )
+        # картинки к сообщению (список base64 в JSON); добавляем столбец в старые базы
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(messages)")]
+        if "images" not in cols:
+            conn.execute("ALTER TABLE messages ADD COLUMN images TEXT")
 
 
 init_db()
@@ -95,28 +107,48 @@ def get_chat_or_404(conn, chat_id: int):
 # ---------- обращение к модели ----------
 
 async def call_model(mode: str, messages: List[dict], think: bool) -> str:
+    has_images = any(m.get("images") for m in messages)
+    model = VISION_MODEL if has_images else MODEL
     payload = {
-        "model": MODEL,
+        "model": model,
         "messages": [{"role": "system", "content": MODES[mode]}] + messages,
         "stream": False,
         "think": think,
         "options": {"temperature": TEMPERATURE[mode]},
     }
     try:
-        async with httpx.AsyncClient(timeout=300) as client:
+        async with httpx.AsyncClient(timeout=600) as client:
             r = await client.post(OLLAMA_URL, json=payload)
-            r.raise_for_status()
+            if r.status_code == 400 and think and "think" in r.text.lower():
+                payload["think"] = False  # модель не умеет «думать» — отвечаем без этого
+                r = await client.post(OLLAMA_URL, json=payload)
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Ollama is not available: {e}")
+    if r.status_code == 404:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Model {model} is not installed. Run in Terminal: ollama pull {model}",
+        )
+    if r.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Ollama error: {r.text[:300]}")
     return r.json()["message"]["content"].strip()
+
+
+def check_images(images: List[str]):
+    if len(images) > MAX_IMAGES:
+        raise HTTPException(status_code=400, detail=f"Up to {MAX_IMAGES} images per message")
+    for img in images:
+        if len(img) > MAX_IMAGE_B64:
+            raise HTTPException(status_code=400, detail="Image is too large")
 
 
 # ---------- модели запросов ----------
 
 class AskRequest(BaseModel):
     mode: Mode = "chat"
-    text: str
+    text: str = ""
     think: bool = False  # True = модель сначала «думает»: дольше, но логичнее
+    images: List[str] = []  # картинки в base64 (без префикса data:)
 
 
 class NewChat(BaseModel):
@@ -124,8 +156,9 @@ class NewChat(BaseModel):
 
 
 class ChatMessage(BaseModel):
-    text: str
+    text: str = ""
     think: bool = False
+    images: List[str] = []
 
 
 class ChatUpdate(BaseModel):
@@ -141,7 +174,11 @@ def index():
 
 @app.post("/ask", summary="Быстрый вопрос без сохранения")
 async def ask(req: AskRequest):
-    answer = await call_model(req.mode, [{"role": "user", "content": req.text}], req.think)
+    check_images(req.images)
+    msg = {"role": "user", "content": req.text}
+    if req.images:
+        msg["images"] = req.images
+    answer = await call_model(req.mode, [msg], req.think)
     return {"mode": req.mode, "answer": answer}
 
 
@@ -167,32 +204,58 @@ def get_chat(chat_id: int):
     with db() as conn:
         chat = get_chat_or_404(conn, chat_id)
         msgs = conn.execute(
-            "SELECT role, content, created_at FROM messages WHERE chat_id = ? ORDER BY id",
+            "SELECT role, content, images, created_at FROM messages WHERE chat_id = ? ORDER BY id",
             (chat_id,),
         ).fetchall()
-        return {**dict(chat), "messages": [dict(m) for m in msgs]}
+        messages = []
+        for m in msgs:
+            item = dict(m)
+            item["images"] = json.loads(item["images"]) if item["images"] else []
+            messages.append(item)
+        return {**dict(chat), "messages": messages}
 
 
 @app.post("/chats/{chat_id}/ask", summary="Написать в чат (модель помнит контекст)")
 async def ask_in_chat(chat_id: int, req: ChatMessage):
+    check_images(req.images)
+    if not req.text.strip() and not req.images:
+        raise HTTPException(status_code=400, detail="Empty message")
     with db() as conn:
         chat = get_chat_or_404(conn, chat_id)
         history = conn.execute(
-            "SELECT role, content FROM messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?",
+            "SELECT role, content, images FROM messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?",
             (chat_id, HISTORY_LIMIT),
         ).fetchall()
-    messages = [dict(m) for m in reversed(history)]
-    messages.append({"role": "user", "content": req.text})
+    messages = []
+    for m in reversed(history):
+        messages.append({"role": m["role"], "content": m["content"], "_images": m["images"]})
+    # чтобы уточняющие вопросы понимали картинку, оставляем в контексте только последнюю из них
+    if not req.images:
+        for m in reversed(messages):
+            if m["_images"]:
+                m["images"] = json.loads(m["_images"])
+                break
+    for m in messages:
+        m.pop("_images")
+    text = req.text.strip() or "Answer the question in the image."
+    current = {"role": "user", "content": text}
+    if req.images:
+        current["images"] = req.images
+    messages.append(current)
 
     answer = await call_model(chat["mode"], messages, req.think)
 
     with db() as conn:
         conn.executemany(
-            "INSERT INTO messages (chat_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-            [(chat_id, "user", req.text, now()), (chat_id, "assistant", answer, now())],
+            "INSERT INTO messages (chat_id, role, content, images, created_at) VALUES (?, ?, ?, ?, ?)",
+            [
+                (chat_id, "user", req.text, json.dumps(req.images) if req.images else None, now()),
+                (chat_id, "assistant", answer, None, now()),
+            ],
         )
         if chat["title"] == "New chat":  # название чата = начало первого сообщения
-            title = req.text[:40] + ("…" if len(req.text) > 40 else "")
+            first = req.text.strip() or "🖼 Image"
+            title = first[:40] + ("…" if len(first) > 40 else "")
             conn.execute("UPDATE chats SET title = ? WHERE id = ?", (title, chat_id))
     return {"chat_id": chat_id, "answer": answer}
 

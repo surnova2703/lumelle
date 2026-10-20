@@ -13,6 +13,7 @@ Lumo combines a local open-source language model with a small web app. It has th
 - **Translate**: Russian ↔ English, only the translation, no extra comments
 - **Chat history**: chats are stored in a local SQLite database and survive restarts
 - **Context memory**: the model sees the last 20 messages of the current chat
+- **Images**: attach a screenshot (📎, paste with Cmd+V or drag and drop), for example a test question, and Lumo reads it with a local vision model
 - **"Think before answering"**: optional reasoning mode for harder questions (slower, more logical)
 - **Fully offline**: no external requests, no CDNs, system fonts only
 - English and Russian interface (auto-detected, switchable)
@@ -36,7 +37,7 @@ The backend adds a system prompt and a temperature for the chat's mode (chat 0.4
 
 | Layer | Technology |
 |---|---|
-| Model | Qwen3 8B via [Ollama](https://ollama.com) |
+| Model | Qwen3 8B (text) and Qwen3-VL 8B (images) via [Ollama](https://ollama.com) |
 | Backend | Python, FastAPI, httpx, Uvicorn |
 | Storage | SQLite (Python standard library) |
 | Frontend | HTML, CSS, vanilla JavaScript (no frameworks, no build step) |
@@ -47,7 +48,8 @@ Tested on a MacBook Air (Apple Silicon, 16 GB RAM).
 
 1. Install [Ollama](https://ollama.com/download) and download the model:
    ```bash
-   ollama pull qwen3:8b
+   ollama pull qwen3:8b      # text
+   ollama pull qwen3-vl:8b   # images (optional, ≈6 GB)
    ```
 2. Clone the repository and install the dependencies:
    ```bash
