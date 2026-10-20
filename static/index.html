@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Lumo AI</title>
 <style>
   :root {
@@ -40,15 +40,27 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     background: var(--bg); color: var(--ink);
-    display: grid; grid-template-columns: 280px 1fr;
+    height: 100vh; height: 100dvh; overflow: hidden;
+    display: grid; grid-template-columns: 280px minmax(0, 1fr);
   }
+  body.side-closed { grid-template-columns: minmax(0, 1fr); }
+  body.side-closed aside { display: none; }
 
   /* ---------- боковая панель ---------- */
   aside {
     background: var(--side); color: var(--side-ink);
     display: flex; flex-direction: column; min-height: 0;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
   }
-  .brand { display: flex; align-items: center; gap: 10px; padding: 20px 20px 12px; font-weight: 700; font-size: 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 20px 12px 12px 20px; font-weight: 700; font-size: 20px; }
+  .brand .name { flex: 1; }
+  .icon-btn {
+    width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+    border: 0; border-radius: 8px; background: none; color: inherit; cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--side-hover); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .scrim { display: none; }
   .orb { width: 22px; height: 22px; border-radius: 50%;
          background: radial-gradient(circle, #FFF4DD 0 25%, #F2B45A 55%, rgba(242,180,90,0) 72%); }
   .new-chat {
@@ -76,6 +88,7 @@
   main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   header {
     display: flex; align-items: center; gap: 16px; padding: 14px 24px;
+    padding-top: max(14px, env(safe-area-inset-top));
     border-bottom: 1px solid var(--line); background: var(--panel);
   }
   header h1 { flex: 1; margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -85,10 +98,12 @@
     padding: 6px 14px; border-radius: 7px; cursor: pointer;
   }
   .modes button.on { background: var(--ink); color: var(--bg); }
-  .menu-btn { display: none; border: 0; background: none; color: var(--ink); font-size: 22px; cursor: pointer; }
+  .menu-btn { display: none; color: var(--ink); margin-left: -8px; }
+  .menu-btn:hover { background: var(--bg); }
+  body.side-closed .menu-btn { display: grid; }
 
   .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
-  .msg { max-width: 760px; padding: 12px 16px; border-radius: 14px; line-height: 1.5; font-size: 15px; overflow-wrap: anywhere; }
+  .msg { max-width: min(760px, 88%); padding: 12px 16px; border-radius: 14px; line-height: 1.5; font-size: 15px; overflow-wrap: anywhere; }
   .msg.user { align-self: flex-end; background: var(--user); color: var(--user-ink); border-bottom-right-radius: 4px; white-space: pre-wrap; }
   .msg.assistant { align-self: flex-start; background: var(--bot); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
   .msg.assistant p { margin: 0 0 8px; } .msg.assistant p:last-child { margin: 0; }
@@ -105,8 +120,17 @@
   .welcome .big-orb { width: 96px; height: 96px; margin: 0 auto 18px; border-radius: 50%;
     background: radial-gradient(circle, #FFF4DD 0 22%, #F2B45A 50%, rgba(242,180,90,0) 72%); }
   .welcome h2 { color: var(--ink); margin: 0 0 6px; font-size: 24px; }
+  .welcome .pres { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; }
+  .welcome .pres a {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    font-size: 14px; font-weight: 600; text-decoration: none;
+  }
+  .welcome .pres a:hover { border-color: var(--accent); }
+  .welcome .pres a.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .welcome .pres svg { width: 18px; height: 18px; flex: none; }
 
-  .composer { padding: 14px 24px 20px; border-top: 1px solid var(--line); background: var(--panel); }
+  .composer { padding: 14px 24px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
   .composer form { display: flex; gap: 10px; align-items: flex-end; }
   textarea {
     flex: 1; resize: none; max-height: 200px; min-height: 46px; padding: 12px 14px;
@@ -123,27 +147,44 @@
   .options label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 
   @media (max-width: 760px) {
-    body { grid-template-columns: 1fr; }
-    aside { position: fixed; inset: 0 auto 0 0; width: 280px; z-index: 10; transform: translateX(-100%); transition: transform .2s; }
+    body, body.side-closed { grid-template-columns: minmax(0, 1fr); }
+    aside, body.side-closed aside {
+      display: flex; position: fixed; inset: 0 auto 0 0; width: min(300px, 85vw); z-index: 10;
+      transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 40px rgba(0,0,0,.3);
+    }
     body.menu-open aside { transform: none; }
-    .menu-btn { display: block; }
-    header { padding: 12px 16px; gap: 10px; }
-    .modes button { padding: 6px 10px; }
-    .messages, .composer { padding-left: 16px; padding-right: 16px; }
+    body.menu-open .scrim { display: block; position: fixed; inset: 0; z-index: 9; background: rgba(10,12,28,.45); }
+    .menu-btn, body.side-closed .menu-btn { display: grid; }
+    header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); gap: 8px; }
+    header h1 { font-size: 15px; }
+    .modes button { padding: 6px 9px; font-size: 13px; }
+    .messages { padding: 16px 12px; }
+    .composer { padding-left: 12px; padding-right: 12px; }
+    .msg { max-width: 92%; }
+    textarea { font-size: 16px; }
+    .send { padding: 0 14px; }
+  }
+  @media (max-width: 420px) {
+    header h1 { display: none; }
+    .modes { margin-left: auto; }
+    .options .offline { display: none; }
   }
 </style>
 </head>
 <body>
 <aside>
-  <div class="brand"><div class="orb"></div>Lumo AI</div>
+  <div class="brand"><div class="orb"></div><span class="name">Lumo AI</span>
+    <button class="icon-btn" id="closeSide" data-i18n-title="closeSide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M15 10l-2 2 2 2"/></svg></button>
+  </div>
   <button class="new-chat" id="newChat" data-i18n="newChat"></button>
   <ul class="chat-list" id="chatList"></ul>
   <button class="lang" id="langBtn"></button>
 </aside>
+<div class="scrim" id="scrim"></div>
 
 <main>
   <header>
-    <button class="menu-btn" id="menuBtn" aria-label="Chats">☰</button>
+    <button class="icon-btn menu-btn" id="menuBtn" data-i18n-title="openSide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M13 10l2 2-2 2"/></svg></button>
     <h1 id="chatTitle"></h1>
     <div class="modes" id="modes">
       <button data-mode="chat" class="on">Chat</button>
@@ -161,7 +202,7 @@
     </form>
     <div class="options">
       <label><input type="checkbox" id="think"> <span data-i18n="think"></span></label>
-      <span data-i18n="offline"></span>
+      <span class="offline" data-i18n="offline"></span>
     </div>
   </div>
 </main>
@@ -177,6 +218,8 @@ const STRINGS = {
     think: "Думать перед ответом (дольше, но логичнее)", offline: "Работает офлайн",
     hello: "Привет! Я Lumo", typing: "Lumo думает…", del: "Удалить", confirmDel: "Удалить этот чат?",
     error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
+    placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
+    presProduct: "Презентация о продукте (EN)", presTech: "Техническая презентация",
     hints: {
       chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
       write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
@@ -189,6 +232,8 @@ const STRINGS = {
     think: "Think before answering (slower, but more logical)", offline: "Works offline",
     hello: "Hi! I’m Lumo", typing: "Lumo is thinking…", del: "Delete", confirmDel: "Delete this chat?",
     error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
+    placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
+    presProduct: "Product presentation", presTech: "Technical deck (RU)",
     hints: {
       chat: "Ask me anything — I’ll answer and remember the context of this chat.",
       write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
@@ -207,11 +252,12 @@ const t = (key) => STRINGS[lang][key];
 function applyLang() {
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  $("input").placeholder = t("placeholder");
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); el.setAttribute("aria-label", el.title); });
+  $("input").placeholder = window.matchMedia("(max-width: 760px)").matches ? t("placeholderShort") : t("placeholder");
   $("langBtn").textContent = t("lang");
   if (!state.current) $("chatTitle").textContent = t("newChatTitle");
   const welcome = document.querySelector(".welcome");
-  if (welcome) { welcome.querySelector("h2").textContent = t("hello"); welcome.querySelector("p").textContent = t("hints")[state.mode]; }
+  if (welcome) welcome.outerHTML = welcomeHtml();
   renderChatList();
 }
 
@@ -251,6 +297,14 @@ function renderMarkdown(text) {
 }
 
 // ---------- отрисовка ----------
+const DECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg>';
+function welcomeHtml() {
+  return `<div class="welcome"><div class="big-orb"></div><h2>${t("hello")}</h2><p>${t("hints")[state.mode]}</p>
+    <div class="pres">
+      <a class="primary" href="/presentations/Lumo_AI_presentation_EN.pdf" target="_blank" rel="noopener">${DECK_ICON}${t("presProduct")}</a>
+      <a href="/presentations/Lumo_AI_tech_RU.pdf" target="_blank" rel="noopener">${DECK_ICON}${t("presTech")}</a>
+    </div></div>`;
+}
 function renderChatList() {
   const list = $("chatList");
   list.innerHTML = "";
@@ -273,7 +327,7 @@ function renderMessages(messages) {
   const box = $("messages");
   box.innerHTML = "";
   if (!messages.length) {
-    box.innerHTML = `<div class="welcome"><div class="big-orb"></div><h2>${t("hello")}</h2><p>${t("hints")[state.mode]}</p></div>`;
+    box.innerHTML = welcomeHtml();
     return;
   }
   messages.forEach((m) => addMessage(m.role, m.content, false));
@@ -404,7 +458,23 @@ $("modes").onclick = async (e) => {
 };
 
 $("newChat").onclick = newChat;
-$("menuBtn").onclick = () => document.body.classList.toggle("menu-open");
+const isMobile = () => window.matchMedia("(max-width: 760px)").matches;
+function setSidebar(open) {
+  if (isMobile()) {
+    document.body.classList.toggle("menu-open", open);
+  } else {
+    document.body.classList.toggle("side-closed", !open);
+    try { localStorage.setItem("lumo-side", open ? "open" : "closed"); } catch (e) {}
+  }
+}
+try { if (localStorage.getItem("lumo-side") === "closed") document.body.classList.add("side-closed"); } catch (e) {}
+$("menuBtn").onclick = () => setSidebar(true);
+$("closeSide").onclick = () => setSidebar(false);
+$("scrim").onclick = () => setSidebar(false);
+window.addEventListener("resize", () => {
+  if (!isMobile()) document.body.classList.remove("menu-open");
+  $("input").placeholder = isMobile() ? t("placeholderShort") : t("placeholder");
+});
 $("langBtn").onclick = () => {
   lang = lang === "ru" ? "en" : "ru";
   try { localStorage.setItem("lumo-lang", lang); } catch (e) {}

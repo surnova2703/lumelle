@@ -6,6 +6,7 @@ from typing import List, Literal
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -42,6 +43,10 @@ MODES = {
 TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1}
 
 app = FastAPI(title="Lumo AI")
+
+# Презентации о проекте (PDF из папки docs) открываются с начального экрана
+if (BASE_DIR / "docs").is_dir():
+    app.mount("/presentations", StaticFiles(directory=BASE_DIR / "docs"), name="presentations")
 
 
 # ---------- база данных (история чатов) ----------
