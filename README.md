@@ -97,7 +97,7 @@ lumo-ai/
 
 ## Presentations
 
-The start screen has an **About the product** button: choose English or Russian and the slides open right inside the app.
+The start screen has an **About the product** button: choose a language, then an introduction or a technical presentation, and the slides open right inside the app.
 
 | Presentation | PowerPoint | PDF |
 |---|---|---|
