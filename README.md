@@ -4,7 +4,7 @@
 
 Lumo combines a local open-source language model with a small web app. It has three modes: **Chat**, **Write** and **Translate**. Conversations are saved locally, and the model remembers the context of each chat.
 
-![Lumo AI interface](docs/screenshot.png)
+![Lumo AI interface](docs/screenshot-en.png)
 
 ## Features
 
@@ -15,6 +15,7 @@ Lumo combines a local open-source language model with a small web app. It has th
 - **Context memory**: the model sees the last 20 messages of the current chat
 - **"Think before answering"**: optional reasoning mode for harder questions (slower, more logical)
 - **Fully offline**: no external requests, no CDNs, system fonts only
+- English and Russian interface (auto-detected, switchable)
 - Light and dark theme, mobile layout
 
 ## How it works

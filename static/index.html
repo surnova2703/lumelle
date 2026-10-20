@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -69,6 +69,8 @@
   .chat-item:hover .del { opacity: 1; }
   .chat-item .del:hover { color: #FF9C8A; }
   .empty-list { padding: 12px; color: var(--side-muted); font-size: 14px; }
+  .lang { margin: 8px 16px 16px; padding: 8px 12px; border: 1px solid var(--side-hover); border-radius: 8px; background: none; color: var(--side-muted); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+  .lang:hover { color: var(--side-ink); background: var(--side-hover); }
 
   /* ---------- основная часть ---------- */
   main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -134,14 +136,15 @@
 <body>
 <aside>
   <div class="brand"><div class="orb"></div>Lumo AI</div>
-  <button class="new-chat" id="newChat">+ Новый чат</button>
+  <button class="new-chat" id="newChat" data-i18n="newChat"></button>
   <ul class="chat-list" id="chatList"></ul>
+  <button class="lang" id="langBtn"></button>
 </aside>
 
 <main>
   <header>
-    <button class="menu-btn" id="menuBtn" aria-label="Список чатов">☰</button>
-    <h1 id="chatTitle">Новый чат</h1>
+    <button class="menu-btn" id="menuBtn" aria-label="Chats">☰</button>
+    <h1 id="chatTitle"></h1>
     <div class="modes" id="modes">
       <button data-mode="chat" class="on">Chat</button>
       <button data-mode="write">Write</button>
@@ -153,12 +156,12 @@
 
   <div class="composer">
     <form id="form">
-      <textarea id="input" rows="1" placeholder="Напиши сообщение…  (Enter — отправить, Shift+Enter — новая строка)"></textarea>
-      <button class="send" id="send" type="submit">Отправить</button>
+      <textarea id="input" rows="1"></textarea>
+      <button class="send" id="send" type="submit" data-i18n="send"></button>
     </form>
     <div class="options">
-      <label><input type="checkbox" id="think"> Думать перед ответом (дольше, но логичнее)</label>
-      <span>Работает офлайн</span>
+      <label><input type="checkbox" id="think"> <span data-i18n="think"></span></label>
+      <span data-i18n="offline"></span>
     </div>
   </div>
 </main>
@@ -167,11 +170,50 @@
 const $ = (id) => document.getElementById(id);
 const state = { chats: [], current: null, mode: "chat", busy: false };
 
-const HINTS = {
-  chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
-  write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
-  translate: "Вставь текст: русский переведу на английский, остальное — на русский.",
+const STRINGS = {
+  ru: {
+    newChat: "+ Новый чат", newChatTitle: "Новый чат", send: "Отправить", noChats: "Чатов пока нет",
+    placeholder: "Напиши сообщение…  (Enter — отправить, Shift+Enter — новая строка)",
+    think: "Думать перед ответом (дольше, но логичнее)", offline: "Работает офлайн",
+    hello: "Привет! Я Lumo", typing: "Lumo думает…", del: "Удалить", confirmDel: "Удалить этот чат?",
+    error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
+    hints: {
+      chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
+      write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
+      translate: "Вставь текст: русский переведу на английский, остальное — на русский.",
+    },
+  },
+  en: {
+    newChat: "+ New chat", newChatTitle: "New chat", send: "Send", noChats: "No chats yet",
+    placeholder: "Type a message…  (Enter to send, Shift+Enter for a new line)",
+    think: "Think before answering (slower, but more logical)", offline: "Works offline",
+    hello: "Hi! I’m Lumo", typing: "Lumo is thinking…", del: "Delete", confirmDel: "Delete this chat?",
+    error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
+    hints: {
+      chat: "Ask me anything — I’ll answer and remember the context of this chat.",
+      write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
+      translate: "Paste a text: Russian goes to English, everything else goes to Russian.",
+    },
+  },
 };
+
+function detectLang() {
+  try { const saved = localStorage.getItem("lumo-lang"); if (saved) return saved; } catch (e) {}
+  return (navigator.language || "en").toLowerCase().startsWith("ru") ? "ru" : "en";
+}
+let lang = detectLang();
+const t = (key) => STRINGS[lang][key];
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  $("input").placeholder = t("placeholder");
+  $("langBtn").textContent = t("lang");
+  if (!state.current) $("chatTitle").textContent = t("newChatTitle");
+  const welcome = document.querySelector(".welcome");
+  if (welcome) { welcome.querySelector("h2").textContent = t("hello"); welcome.querySelector("p").textContent = t("hints")[state.mode]; }
+  renderChatList();
+}
 
 // ---------- API ----------
 async function api(path, options = {}) {
@@ -213,13 +255,13 @@ function renderChatList() {
   const list = $("chatList");
   list.innerHTML = "";
   if (!state.chats.length) {
-    list.innerHTML = '<li class="empty-list">Чатов пока нет</li>';
+    list.innerHTML = `<li class="empty-list">${t("noChats")}</li>`;
     return;
   }
   for (const chat of state.chats) {
     const li = document.createElement("li");
     li.className = "chat-item" + (state.current && chat.id === state.current.id ? " active" : "");
-    li.innerHTML = `<span class="title"></span><span class="tag">${chat.mode}</span><button class="del" title="Удалить">×</button>`;
+    li.innerHTML = `<span class="title"></span><span class="tag">${chat.mode}</span><button class="del" title="${t("del")}">×</button>`;
     li.querySelector(".title").textContent = chat.title;
     li.onclick = () => openChat(chat.id);
     li.querySelector(".del").onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
@@ -231,7 +273,7 @@ function renderMessages(messages) {
   const box = $("messages");
   box.innerHTML = "";
   if (!messages.length) {
-    box.innerHTML = `<div class="welcome"><div class="big-orb"></div><h2>Привет! Я Lumo</h2><p>${HINTS[state.mode]}</p></div>`;
+    box.innerHTML = `<div class="welcome"><div class="big-orb"></div><h2>${t("hello")}</h2><p>${t("hints")[state.mode]}</p></div>`;
     return;
   }
   messages.forEach((m) => addMessage(m.role, m.content, false));
@@ -254,13 +296,13 @@ function setMode(mode) {
   state.mode = mode;
   document.querySelectorAll("#modes button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
   const welcome = document.querySelector(".welcome p");
-  if (welcome) welcome.textContent = HINTS[mode];
+  if (welcome) welcome.textContent = t("hints")[mode];
 }
 
 function setBusy(busy) {
   state.busy = busy;
   $("send").disabled = busy;
-  $("send").textContent = busy ? "…" : "Отправить";
+  $("send").textContent = busy ? "…" : t("send");
 }
 
 // ---------- действия ----------
@@ -282,7 +324,7 @@ async function openChat(id) {
 
 function newChat() {
   state.current = null;
-  $("chatTitle").textContent = "Новый чат";
+  $("chatTitle").textContent = t("newChatTitle");
   renderMessages([]);
   renderChatList();
   document.body.classList.remove("menu-open");
@@ -290,7 +332,7 @@ function newChat() {
 }
 
 async function deleteChat(id) {
-  if (!confirm("Удалить этот чат?")) return;
+  if (!confirm(t("confirmDel"))) return;
   await api(`/chats/${id}`, { method: "DELETE" });
   if (state.current && state.current.id === id) newChat();
   await loadChats();
@@ -301,14 +343,14 @@ async function send(text) {
   addMessage("user", text);
   const typing = document.createElement("div");
   typing.className = "typing";
-  typing.innerHTML = "<span></span><span></span><span></span> Lumo думает…";
+  typing.innerHTML = "<span></span><span></span><span></span> " + t("typing");
   $("messages").appendChild(typing);
   $("messages").scrollTop = $("messages").scrollHeight;
 
   try {
     if (!state.current) {
       const created = await api("/chats", { method: "POST", body: { mode: state.mode } });
-      state.current = { id: created.id, mode: state.mode, title: "Новый чат" };
+      state.current = { id: created.id, mode: state.mode, title: "New chat" };
     }
     const res = await api(`/chats/${state.current.id}/ask`, {
       method: "POST",
@@ -321,7 +363,7 @@ async function send(text) {
     if (fresh) { state.current.title = fresh.title; $("chatTitle").textContent = fresh.title; }
   } catch (err) {
     typing.remove();
-    addMessage("error", "Не получилось ответить: " + err.message + ". Проверь, что Ollama запущена.");
+    addMessage("error", t("error") + err.message + t("errorHint"));
   } finally {
     setBusy(false);
     $("input").focus();
@@ -363,8 +405,14 @@ $("modes").onclick = async (e) => {
 
 $("newChat").onclick = newChat;
 $("menuBtn").onclick = () => document.body.classList.toggle("menu-open");
+$("langBtn").onclick = () => {
+  lang = lang === "ru" ? "en" : "ru";
+  try { localStorage.setItem("lumo-lang", lang); } catch (e) {}
+  applyLang();
+};
 
 // ---------- старт ----------
+applyLang();
 loadChats().catch(() => {});
 newChat();
 </script>
