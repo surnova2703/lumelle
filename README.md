@@ -103,6 +103,7 @@ The start screen has an **About the product** button: choose English or Russian 
 |---|---|---|
 | Product presentation (English) | [pptx](docs/Lumo_AI_presentation_EN.pptx) | [pdf](docs/Lumo_AI_presentation_EN.pdf) |
 | Презентация о продукте (русский) | [pptx](docs/Lumo_AI_presentation_RU.pptx) | [pdf](docs/Lumo_AI_presentation_RU.pdf) |
+| Technical presentation (English) | [pptx](docs/Lumo_AI_tech_EN.pptx) | [pdf](docs/Lumo_AI_tech_EN.pdf) |
 | Техническая презентация (русский) | [pptx](docs/Lumo_AI_tech_RU.pptx) | [pdf](docs/Lumo_AI_tech_RU.pdf) |
 
 ---

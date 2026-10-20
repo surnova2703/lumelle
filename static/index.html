@@ -156,7 +156,8 @@
   .lang-opt:hover { border-color: var(--accent); }
   .lang-opt .code { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--accent); font-size: 13px; font-weight: 700; flex: none; }
   .lang-opt .sub { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 2px; }
-  .tech-link { display: block; margin-top: 6px; padding: 6px 0 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .tech-row { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .tech-link { display: inline; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
   .tech-link:hover { color: var(--ink); }
 
   /* ---------- просмотр презентаций ---------- */
@@ -291,7 +292,7 @@
     <p data-i18n="chooseSub"></p>
     <button class="lang-opt" data-deck="en"><span class="code">EN</span><span>English<span class="sub">9 slides</span></span></button>
     <button class="lang-opt" data-deck="ru"><span class="code">RU</span><span>Русский<span class="sub">9 слайдов</span></span></button>
-    <button class="tech-link" data-deck="tech" data-i18n="presTech"></button>
+    <div class="tech-row"><span data-i18n="presTech"></span> <button class="tech-link" data-deck="tech-en">English</button> · <button class="tech-link" data-deck="tech">Русский</button></div>
   </div>
 </div>
 
@@ -337,7 +338,7 @@ const STRINGS = {
     hello: "Привет! Я Lumo", typing: "Lumo думает…", del: "Удалить", confirmDel: "Удалить этот чат?",
     error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
-    presProduct: "О продукте", presTech: "Техническая презентация (RU) →",
+    presProduct: "О продукте", presTech: "Техническая презентация:",
     chooseTitle: "Презентация о Lumo", chooseSub: "На каком языке показать?",
     attach: "Прикрепить картинку (или вставь скриншот: Cmd+V)", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
@@ -354,7 +355,7 @@ const STRINGS = {
     hello: "Hi! I’m Lumo", typing: "Lumo is thinking…", del: "Delete", confirmDel: "Delete this chat?",
     error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
-    presProduct: "About the product", presTech: "Technical deck (Russian) →",
+    presProduct: "About the product", presTech: "Technical deck:",
     chooseTitle: "Lumo presentation", chooseSub: "Which language would you like?",
     attach: "Attach an image (or paste a screenshot: Cmd+V)", tooMany: "You can attach up to 4 images", removeImg: "Remove",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
@@ -685,6 +686,7 @@ const DECKS = {
   en: { title: "Lumo AI — Product presentation", folder: "en", count: 9, pdf: "Lumo_AI_presentation_EN.pdf" },
   ru: { title: "Lumo AI — Презентация о продукте", folder: "ru", count: 9, pdf: "Lumo_AI_presentation_RU.pdf" },
   tech: { title: "Lumo AI — Техническая презентация", folder: "tech", count: 13, pdf: "Lumo_AI_tech_RU.pdf" },
+  "tech-en": { title: "Lumo AI — Technical presentation", folder: "tech-en", count: 13, pdf: "Lumo_AI_tech_EN.pdf" },
 };
 const viewer = { deck: null, i: 0 };
 
