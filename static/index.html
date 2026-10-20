@@ -129,6 +129,48 @@
   .welcome .pres a:hover { border-color: var(--accent); }
   .welcome .pres a.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .welcome .pres svg { width: 18px; height: 18px; flex: none; }
+  .welcome .pres button { font: inherit; cursor: pointer; }
+  .welcome .pres .pbtn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 14px; font-weight: 600;
+  }
+  .welcome .pres .pbtn:hover { border-color: var(--accent); }
+  .welcome .pres .pbtn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* ---------- просмотр презентаций ---------- */
+  .viewer {
+    position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column;
+    background: rgba(8, 9, 20, .97); color: #F6F3EC;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .viewer.open { display: flex; }
+  .viewer-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+  .viewer-bar .vtitle { flex: 1; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .viewer-bar .count { font-size: 14px; color: #B8BAD0; font-variant-numeric: tabular-nums; }
+  .viewer-bar a { color: #F2B45A; font-size: 14px; text-decoration: none; white-space: nowrap; }
+  .viewer-bar a:hover { text-decoration: underline; }
+  .viewer .icon-btn:hover { background: rgba(255,255,255,.1); }
+  .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 16px; touch-action: pan-y; }
+  .stage img {
+    max-width: calc(100% - 120px); max-height: 100%; aspect-ratio: 16 / 9; min-width: 0; width: auto; height: auto; object-fit: contain;
+    border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.5); background: #14162B; user-select: none; -webkit-user-drag: none;
+  }
+  .nav {
+    flex: none; width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.1); color: #F6F3EC; display: grid; place-items: center;
+  }
+  .nav:hover { background: rgba(242,180,90,.9); color: #14162B; }
+  .nav:disabled { opacity: .25; cursor: default; background: rgba(255,255,255,.1); color: #F6F3EC; }
+  .nav svg { width: 22px; height: 22px; }
+  .dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 14px 16px 18px; }
+  .dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; }
+  .dots button.on { background: #F2B45A; width: 22px; border-radius: 4px; }
+  @media (max-width: 760px) {
+    .stage { padding: 0 8px; }
+    .stage img { max-width: 100%; }
+    .nav { display: none; }
+    .viewer-bar a .long { display: none; }
+  }
 
   .composer { padding: 14px 24px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
   .composer form { display: flex; gap: 10px; align-items: flex-end; }
@@ -181,6 +223,20 @@
   <button class="lang" id="langBtn"></button>
 </aside>
 <div class="scrim" id="scrim"></div>
+<div class="viewer" id="viewer" role="dialog" aria-modal="true">
+  <div class="viewer-bar">
+    <span class="vtitle" id="vTitle"></span>
+    <span class="count" id="vCount"></span>
+    <a id="vPdf" target="_blank" rel="noopener">PDF<span class="long"> ↗</span></a>
+    <button class="icon-btn" id="vClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="stage" id="stage">
+    <button class="nav" id="vPrev" data-i18n-title="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <img id="vImg" alt="">
+    <button class="nav" id="vNext" data-i18n-title="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="dots" id="vDots"></div>
+</div>
 
 <main>
   <header>
@@ -220,6 +276,7 @@ const STRINGS = {
     error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
     presProduct: "Презентация о продукте (EN)", presTech: "Техническая презентация",
+    close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
     hints: {
       chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
       write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
@@ -234,6 +291,7 @@ const STRINGS = {
     error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
     presProduct: "Product presentation", presTech: "Technical deck (RU)",
+    close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
     hints: {
       chat: "Ask me anything — I’ll answer and remember the context of this chat.",
       write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
@@ -301,8 +359,8 @@ const DECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 function welcomeHtml() {
   return `<div class="welcome"><div class="big-orb"></div><h2>${t("hello")}</h2><p>${t("hints")[state.mode]}</p>
     <div class="pres">
-      <a class="primary" href="/presentations/Lumo_AI_presentation_EN.pdf" target="_blank" rel="noopener">${DECK_ICON}${t("presProduct")}</a>
-      <a href="/presentations/Lumo_AI_tech_RU.pdf" target="_blank" rel="noopener">${DECK_ICON}${t("presTech")}</a>
+      <button class="pbtn primary" data-deck="en">${DECK_ICON}${t("presProduct")}</button>
+      <button class="pbtn" data-deck="ru">${DECK_ICON}${t("presTech")}</button>
     </div></div>`;
 }
 function renderChatList() {
@@ -480,6 +538,74 @@ $("langBtn").onclick = () => {
   try { localStorage.setItem("lumo-lang", lang); } catch (e) {}
   applyLang();
 };
+
+// ---------- просмотр презентаций ----------
+const DECKS = {
+  en: { title: "Lumo AI — Product presentation", folder: "en", count: 9, pdf: "Lumo_AI_presentation_EN.pdf" },
+  ru: { title: "Lumo AI — Техническая презентация", folder: "ru", count: 13, pdf: "Lumo_AI_tech_RU.pdf" },
+};
+const viewer = { deck: null, i: 0 };
+
+function openDeck(key) {
+  viewer.deck = DECKS[key];
+  viewer.i = 0;
+  $("vTitle").textContent = viewer.deck.title;
+  $("vPdf").href = `/presentations/${viewer.deck.pdf}`;
+  $("vDots").innerHTML = "";
+  for (let n = 0; n < viewer.deck.count; n++) {
+    const d = document.createElement("button");
+    d.setAttribute("aria-label", `${t("slide")} ${n + 1}`);
+    d.onclick = () => showSlide(n);
+    $("vDots").appendChild(d);
+  }
+  $("viewer").classList.add("open");
+  showSlide(0);
+}
+
+function slideSrc(n) { return `/presentations/slides/${viewer.deck.folder}/${n + 1}.jpg`; }
+
+function showSlide(n) {
+  const d = viewer.deck;
+  if (!d) return;
+  viewer.i = Math.max(0, Math.min(d.count - 1, n));
+  $("vImg").src = slideSrc(viewer.i);
+  $("vImg").alt = `${d.title}: ${t("slide")} ${viewer.i + 1}`;
+  $("vCount").textContent = `${viewer.i + 1} / ${d.count}`;
+  $("vPrev").disabled = viewer.i === 0;
+  $("vNext").disabled = viewer.i === d.count - 1;
+  [...$("vDots").children].forEach((b, k) => b.classList.toggle("on", k === viewer.i));
+  if (viewer.i + 1 < d.count) new Image().src = slideSrc(viewer.i + 1); // заранее грузим следующий
+}
+
+function closeDeck() { $("viewer").classList.remove("open"); viewer.deck = null; }
+
+$("messages").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-deck]");
+  if (btn) openDeck(btn.dataset.deck);
+});
+$("vPrev").onclick = () => showSlide(viewer.i - 1);
+$("vNext").onclick = () => showSlide(viewer.i + 1);
+$("vClose").onclick = closeDeck;
+$("vImg").onclick = (e) => {
+  const r = e.target.getBoundingClientRect();
+  showSlide(viewer.i + (e.clientX - r.left < r.width / 3 ? -1 : 1));
+};
+document.addEventListener("keydown", (e) => {
+  if (!viewer.deck) return;
+  if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); showSlide(viewer.i + 1); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); showSlide(viewer.i - 1); }
+  else if (e.key === "Home") showSlide(0);
+  else if (e.key === "End") showSlide(viewer.deck.count - 1);
+  else if (e.key === "Escape") closeDeck();
+});
+let touchX = null;
+$("stage").addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+$("stage").addEventListener("touchend", (e) => {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if (Math.abs(dx) > 40) showSlide(viewer.i + (dx < 0 ? 1 : -1));
+  touchX = null;
+});
 
 // ---------- старт ----------
 applyLang();
