@@ -38,7 +38,7 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
     background: var(--bg); color: var(--ink);
     height: 100vh; height: 100dvh; overflow: hidden;
     display: grid; grid-template-columns: 280px minmax(0, 1fr);
@@ -357,7 +357,7 @@ const STRINGS = {
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
     presProduct: "О продукте", presTech: "",
     chooseTitle: "Презентация о Lumo", chooseSub: "На каком языке показать?",
-    attach: "Прикрепить картинку (или вставь скриншот: Cmd+V)", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
+    attach: "Прикрепить картинку (или вставь скриншот: {paste})", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
     hints: {
       chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
@@ -375,7 +375,7 @@ const STRINGS = {
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
     presProduct: "About the product", presTech: "",
     chooseTitle: "Lumo presentation", chooseSub: "Which language would you like?",
-    attach: "Attach an image (or paste a screenshot: Cmd+V)", tooMany: "You can attach up to 4 images", removeImg: "Remove",
+    attach: "Attach an image (or paste a screenshot: {paste})", tooMany: "You can attach up to 4 images", removeImg: "Remove",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
     hints: {
       chat: "Ask me anything — I’ll answer and remember the context of this chat.",
@@ -391,7 +391,9 @@ function detectLang() {
   return (navigator.language || "en").toLowerCase().startsWith("ru") ? "ru" : "en";
 }
 let lang = detectLang();
-const t = (key) => STRINGS[lang][key];
+// Cmd на Mac/iPhone, Ctrl на Windows, Linux и Android
+const PASTE_KEY = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent) ? "Cmd+V" : "Ctrl+V";
+const t = (key) => { const v = STRINGS[lang][key]; return typeof v === "string" ? v.replace("{paste}", PASTE_KEY) : v; };
 
 function applyLang() {
   document.documentElement.lang = lang;

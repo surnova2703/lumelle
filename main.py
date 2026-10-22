@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import sqlite3
 import time
@@ -14,9 +15,11 @@ from pydantic import BaseModel
 
 from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen3:8b"         # модель для текста
-VISION_MODEL = "qwen3-vl:8b"  # модель для сообщений с картинками
+# Настройки можно поменять переменными окружения (удобно для слабых компьютеров):
+#   LUMO_MODEL=qwen3:4b  LUMO_VISION_MODEL=qwen3-vl:4b  OLLAMA_HOST=http://localhost:11434
+OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/") + "/api/chat"
+MODEL = os.environ.get("LUMO_MODEL", "qwen3:8b")                # модель для текста
+VISION_MODEL = os.environ.get("LUMO_VISION_MODEL", "qwen3-vl:8b")  # модель для картинок
 MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent

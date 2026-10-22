@@ -2,7 +2,7 @@
 
 **A private AI assistant that runs entirely on your own laptop. No internet, no cloud, no data leaks.**
 
-Lumo combines a local open-source language model with a small web app. It has four modes: **Chat**, **Write**, **Translate** and **Slides**. Conversations are saved locally, and the model remembers the context of each chat.
+Lumo runs on Windows, macOS and Linux. It combines a local open-source language model with a small web app. It has four modes: **Chat**, **Write**, **Translate** and **Slides**. Conversations are saved locally, and the model remembers the context of each chat.
 
 ![Lumo AI interface](docs/screenshot-en.png)
 
@@ -14,7 +14,7 @@ Lumo combines a local open-source language model with a small web app. It has fo
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Chat history**: chats are stored in a local SQLite database and survive restarts
 - **Context memory**: the model sees the last 20 messages of the current chat
-- **Images**: attach a screenshot (📎, paste with Cmd+V or drag and drop), for example a test question, and Lumo reads it with a local vision model
+- **Images**: attach a screenshot (📎, paste with Ctrl+V / Cmd+V or drag and drop), for example a test question, and Lumo reads it with a local vision model
 - **"Think before answering"**: optional reasoning mode for harder questions (slower, more logical)
 - **Fully offline**: no external requests, no CDNs, system fonts only
 - English and Russian interface (auto-detected, switchable)
@@ -43,28 +43,39 @@ The backend adds a system prompt and a temperature for the chat's mode (chat 0.4
 | Storage | SQLite (Python standard library) |
 | Frontend | HTML, CSS, vanilla JavaScript (no frameworks, no build step) |
 
-## Getting started (macOS)
+## Getting started
 
-Tested on a MacBook Air (Apple Silicon, 16 GB RAM).
+Lumo runs on **Windows, macOS and Linux**. You need [Python 3.9+](https://www.python.org/downloads/) and [Ollama](https://ollama.com/download). The internet is needed only for the first setup.
 
-1. Install [Ollama](https://ollama.com/download) and download the model:
+1. Install Ollama and download the models:
    ```bash
    ollama pull qwen3:8b      # text
    ollama pull qwen3-vl:8b   # images (optional, ≈6 GB)
    ```
-2. Clone the repository and install the dependencies:
-   ```bash
-   git clone https://github.com/surnova2703/lumo-ai.git
-   cd lumo-ai
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-3. Start the server:
-   ```bash
-   uvicorn main:app --reload
-   ```
-4. Open http://127.0.0.1:8000. The API docs are at http://127.0.0.1:8000/docs.
+2. Download the project (`git clone https://github.com/surnova2703/lumo-ai.git` or **Code → Download ZIP**).
+3. Start it:
+
+   | System | How to start |
+   |---|---|
+   | Windows | double-click `start.bat` |
+   | macOS | double-click `start.command` (or run `./start.sh` in Terminal) |
+   | Linux | run `./start.sh` |
+
+   The first start creates a Python environment and installs the libraries. Then the browser opens http://127.0.0.1:8000.
+
+Options: `--model` picks the text model, `--lan` lets other devices in your network (or Tailscale) open Lumo, `--port 9000` changes the port, `--no-browser` doesn't open the browser.
+
+### Hardware
+
+| Computer | What works well |
+|---|---|
+| Apple Silicon Mac, 16 GB | `qwen3:8b` (tested on a MacBook Air) |
+| Windows / Linux with an NVIDIA GPU (8 GB+) | `qwen3:8b`, fast |
+| Laptop without a GPU, 8–16 GB RAM | `qwen3:4b` — slower, but works |
+
+A smaller model is chosen at start: `start.bat --model qwen3:4b` on Windows, `./start.sh --model qwen3:4b` on macOS/Linux (download it first with `ollama pull qwen3:4b`). The image model: `--vision-model qwen3-vl:4b`.
+
+Phones and tablets (iPhone, Android) open Lumo in the browser when the computer runs it with `--lan`.
 
 ## API
 
@@ -85,6 +96,8 @@ Tested on a MacBook Air (Apple Silicon, 16 GB RAM).
 lumo-ai/
 ├── main.py            # FastAPI backend: modes, chat history, Ollama client
 ├── slides.py          # Slides mode: builds .pptx files from the model's outline
+├── run.py             # cross-platform launcher (checks Ollama, opens the browser)
+├── start.bat / start.sh / start.command  # double-click starters
 ├── static/index.html  # web interface
 ├── requirements.txt
 └── docs/              # screenshots and presentations
@@ -93,7 +106,7 @@ lumo-ai/
 ## Roadmap
 
 - [ ] Streaming answers (word by word)
-- [ ] Desktop app for macOS (Tauri)
+- [ ] Desktop app for Windows, macOS and Linux (Tauri)
 - [ ] Model selection in the interface
 - [ ] Ask questions about your own documents (PDF, DOCX) with local RAG
 - [ ] Password protection for access from other devices
