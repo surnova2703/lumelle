@@ -2,7 +2,7 @@
 
 **A private AI assistant that runs entirely on your own laptop. No internet, no cloud, no data leaks.**
 
-Lumo combines a local open-source language model with a small web app. It has three modes: **Chat**, **Write** and **Translate**. Conversations are saved locally, and the model remembers the context of each chat.
+Lumo combines a local open-source language model with a small web app. It has four modes: **Chat**, **Write**, **Translate** and **Slides**. Conversations are saved locally, and the model remembers the context of each chat.
 
 ![Lumo AI interface](docs/screenshot-en.png)
 
@@ -11,6 +11,7 @@ Lumo combines a local open-source language model with a small web app. It has th
 - **Chat**: ask questions and get structured answers (a short answer first, then the details)
 - **Write**: emails, posts and essays in the requested tone and length
 - **Translate**: Russian ↔ English, only the translation, no extra comments
+- **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Chat history**: chats are stored in a local SQLite database and survive restarts
 - **Context memory**: the model sees the last 20 messages of the current chat
 - **Images**: attach a screenshot (📎, paste with Cmd+V or drag and drop), for example a test question, and Lumo reads it with a local vision model
@@ -31,14 +32,14 @@ FastAPI backend (main.py) ──── SQLite (lumo.db): chats and messages
 Ollama ──── qwen3:8b (local LLM)
 ```
 
-The backend adds a system prompt and a temperature for the chat's mode (chat 0.4, write 0.7, translate 0.1), loads the chat history from SQLite and sends everything to the model through the Ollama API.
+The backend adds a system prompt and a temperature for the chat's mode (chat 0.4, write 0.7, translate 0.1, slides 0.5), loads the chat history from SQLite and sends everything to the model through the Ollama API.
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
 | Model | Qwen3 8B (text) and Qwen3-VL 8B (images) via [Ollama](https://ollama.com) |
-| Backend | Python, FastAPI, httpx, Uvicorn |
+| Backend | Python, FastAPI, httpx, Uvicorn, python-pptx |
 | Storage | SQLite (Python standard library) |
 | Frontend | HTML, CSS, vanilla JavaScript (no frameworks, no build step) |
 
@@ -76,12 +77,14 @@ Tested on a MacBook Air (Apple Silicon, 16 GB RAM).
 | `POST` | `/chats/{id}/ask` | Send a message in a chat (with context): `{"text": "...", "think": false}` |
 | `PATCH` | `/chats/{id}` | Change the chat's mode |
 | `DELETE` | `/chats/{id}` | Delete a chat |
+| `GET` | `/decks/{file}` | Download a presentation made in Slides mode |
 
 ## Project structure
 
 ```
 lumo-ai/
 ├── main.py            # FastAPI backend: modes, chat history, Ollama client
+├── slides.py          # Slides mode: builds .pptx files from the model's outline
 ├── static/index.html  # web interface
 ├── requirements.txt
 └── docs/              # screenshots and presentations

@@ -1,5 +1,7 @@
 import json
+import re
 import sqlite3
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import List, Literal
@@ -10,6 +12,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
+
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL = "qwen3:8b"         # модель для текста
 VISION_MODEL = "qwen3-vl:8b"  # модель для сообщений с картинками
@@ -17,9 +21,10 @@ MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "lumo.db"
+DECKS_DIR = BASE_DIR / "generated"  # презентации, созданные в режиме Slides
 HISTORY_LIMIT = 20  # сколько последних сообщений модель «помнит» в чате
 
-Mode = Literal["chat", "write", "translate"]
+Mode = Literal["chat", "write", "translate", "slides"]
 
 # Инструкции для каждого режима
 MODES = {
@@ -45,10 +50,20 @@ MODES = {
         "Keep the meaning, tone and formatting. "
         "Output only the translation, with no explanations."
     ),
+    "slides": (
+        "You are Lumo, a presentation designer. Turn the user's request into a slide outline. "
+        "Write in the same language as the request. Make 5-8 content slides unless the user asks for another number. "
+        "Keep slides minimal: a short title (up to 6 words) and 2-4 bullets of up to 8 words each. "
+        "Put what the speaker should say in 'notes' (2-4 simple sentences). "
+        "Do not add a title slide or a thank-you slide: they are added automatically. "
+        "'title' is the presentation title, 'subtitle' is one short line. "
+        "If an image is attached, use it as material. If the user asks to change the previous presentation, "
+        "return the whole updated presentation."
+    ),
 }
 
 # «Температура»: ниже = точнее и предсказуемее, выше = креативнее
-TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1}
+TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1, "slides": 0.5}
 
 app = FastAPI(title="Lumo AI")
 
@@ -106,7 +121,7 @@ def get_chat_or_404(conn, chat_id: int):
 
 # ---------- обращение к модели ----------
 
-async def call_model(mode: str, messages: List[dict], think: bool) -> str:
+async def call_model(mode: str, messages: List[dict], think: bool, fmt=None) -> str:
     has_images = any(m.get("images") for m in messages)
     model = VISION_MODEL if has_images else MODEL
     payload = {
@@ -116,6 +131,8 @@ async def call_model(mode: str, messages: List[dict], think: bool) -> str:
         "think": think,
         "options": {"temperature": TEMPERATURE[mode]},
     }
+    if fmt is not None:
+        payload["format"] = fmt  # структурированный ответ (JSON по схеме)
     try:
         async with httpx.AsyncClient(timeout=600) as client:
             r = await client.post(OLLAMA_URL, json=payload)
@@ -132,6 +149,20 @@ async def call_model(mode: str, messages: List[dict], think: bool) -> str:
     if r.status_code >= 400:
         raise HTTPException(status_code=502, detail=f"Ollama error: {r.text[:300]}")
     return r.json()["message"]["content"].strip()
+
+
+async def answer_for(mode: str, messages: List[dict], think: bool) -> str:
+    """Ответ модели; в режиме Slides — план слайдов + готовый .pptx."""
+    if mode != "slides":
+        return await call_model(mode, messages, think)
+    raw = await call_model(mode, messages, think, fmt=SLIDES_SCHEMA)
+    try:
+        deck = clean_deck(json.loads(raw))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(status_code=502, detail="The model returned an invalid outline. Please try again.")
+    name = f"lumo_{int(time.time() * 1000)}.pptx"
+    build_pptx(deck, DECKS_DIR / name)
+    return outline_markdown(deck, f"/decks/{name}")
 
 
 def check_images(images: List[str]):
@@ -172,13 +203,24 @@ def index():
     return FileResponse(BASE_DIR / "static" / "index.html")
 
 
+@app.get("/decks/{name}", include_in_schema=False)
+def download_deck(name: str):
+    if not re.fullmatch(r"lumo_\d+\.pptx", name) or not (DECKS_DIR / name).is_file():
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    return FileResponse(
+        DECKS_DIR / name,
+        filename=name,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    )
+
+
 @app.post("/ask", summary="Быстрый вопрос без сохранения")
 async def ask(req: AskRequest):
     check_images(req.images)
     msg = {"role": "user", "content": req.text}
     if req.images:
         msg["images"] = req.images
-    answer = await call_model(req.mode, [msg], req.think)
+    answer = await answer_for(req.mode, [msg], req.think)
     return {"mode": req.mode, "answer": answer}
 
 
@@ -243,7 +285,7 @@ async def ask_in_chat(chat_id: int, req: ChatMessage):
         current["images"] = req.images
     messages.append(current)
 
-    answer = await call_model(chat["mode"], messages, req.think)
+    answer = await answer_for(chat["mode"], messages, req.think)
 
     with db() as conn:
         conn.executemany(

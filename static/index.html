@@ -110,6 +110,11 @@
   .msg.assistant pre { background: var(--bg); padding: 10px 12px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
   .msg.assistant code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
   .msg.assistant ul, .msg.assistant ol { margin: 4px 0 8px; padding-left: 22px; }
+  .msg.assistant a.dl {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 10px 16px; border-radius: 10px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none;
+  }
+  .msg.assistant a.dl:hover { filter: brightness(1.05); }
   .msg.error { align-self: flex-start; background: #FBE3DE; color: #7A2414; border: 1px solid #F0B7AA; }
   .typing { align-self: flex-start; color: var(--muted); font-size: 14px; padding: 4px 4px; }
   .typing span { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
@@ -315,6 +320,7 @@
       <button data-mode="chat" class="on">Chat</button>
       <button data-mode="write">Write</button>
       <button data-mode="translate">Translate</button>
+      <button data-mode="slides">Slides</button>
     </div>
   </header>
 
@@ -357,6 +363,7 @@ const STRINGS = {
       chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
       write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
       translate: "Вставь текст: русский переведу на английский, остальное — на русский.",
+      slides: "Напиши тему — я сделаю презентацию: план слайдов, речь в заметках и файл PowerPoint.",
     },
   },
   en: {
@@ -374,6 +381,7 @@ const STRINGS = {
       chat: "Ask me anything — I’ll answer and remember the context of this chat.",
       write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
       translate: "Paste a text: Russian goes to English, everything else goes to Russian.",
+      slides: "Give me a topic and I’ll make a presentation: a slide plan, speaker notes and a PowerPoint file.",
     },
   },
 };
@@ -421,6 +429,7 @@ function renderMarkdown(text) {
       const inline = (s) => s
         .replace(/`([^`]+)`/g, "<code>$1</code>")
         .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+        .replace(/\[([^\]]+)\]\((\/decks\/lumo_\d+\.pptx)\)/g, '<a class="dl" href="$2" download>$1</a>')
         .replace(/^#{1,6}\s+(.*)$/gm, "<b>$1</b>");
       const lines = para.split("\n");
       if (lines.every((l) => /^\s*[-*•]\s+/.test(l)))
