@@ -63,6 +63,8 @@ Lumo runs on **Windows, macOS and Linux**. You need [Python 3.9+](https://www.py
 
    The first start creates a Python environment and installs the libraries. Then the browser opens http://127.0.0.1:8000.
 
+Step-by-step instructions for each system: **[Installation guide (English)](INSTALL_EN.md)** · **[Инструкция по установке (русский)](INSTALL_RU.md)**. The same guide opens inside Lumo with the **Installation** button on the start screen.
+
 Options: `--model` picks the text model, `--lan` lets other devices in your network (or Tailscale) open Lumo, `--port 9000` changes the port, `--no-browser` doesn't open the browser.
 
 ### Hardware
@@ -99,6 +101,7 @@ lumo-ai/
 ├── run.py             # cross-platform launcher (checks Ollama, opens the browser)
 ├── start.bat / start.sh / start.command  # double-click starters
 ├── static/index.html  # web interface
+├── INSTALL_EN.md / INSTALL_RU.md  # installation guides (also shown in the app)
 ├── requirements.txt
 └── docs/              # screenshots and presentations
 ```

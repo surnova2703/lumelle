@@ -168,6 +168,39 @@
   .tech-link { display: inline; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
   .tech-link:hover { color: var(--ink); }
 
+  /* ---------- инструкция по установке ---------- */
+  .guide { position: fixed; inset: 0; z-index: 45; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(10,12,28,.55); }
+  .guide.open { display: flex; }
+  .guide-box {
+    width: min(760px, 100%); max-height: min(88dvh, 900px); display: flex; flex-direction: column;
+    background: var(--panel); color: var(--ink); border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: hidden;
+  }
+  .guide-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 12px 22px; border-bottom: 1px solid var(--line); }
+  .guide-head b { flex: 1; font-size: 15px; }
+  .guide-langs { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); }
+  .guide-langs button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+  .guide-langs button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .guide-body { overflow-y: auto; padding: 6px 26px 28px; font-size: 15px; line-height: 1.6; -webkit-overflow-scrolling: touch; }
+  .guide-body h1 { font-size: 24px; margin: 18px 0 10px; line-height: 1.25; }
+  .guide-body h2 { font-size: 19px; margin: 26px 0 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .guide-body h3 { font-size: 16px; margin: 20px 0 6px; }
+  .guide-body p { margin: 8px 0; }
+  .guide-body ol, .guide-body ul { margin: 8px 0; padding-left: 22px; }
+  .guide-body li { margin: 6px 0; }
+  .guide-body code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; padding: 1px 5px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); word-break: break-word; }
+  .guide-body a { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  .guide-body .tbl { overflow-x: auto; margin: 10px 0; border: 1px solid var(--line); border-radius: 10px; }
+  .guide-body table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .guide-body th, .guide-body td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .guide-body th { background: var(--bg); font-weight: 700; }
+  .guide-body tr:last-child td { border-bottom: 0; }
+  @media (max-width: 640px) {
+    .guide { padding: 0; }
+    .guide-box { width: 100%; max-height: none; height: 100dvh; border-radius: 0; padding-bottom: env(safe-area-inset-bottom); }
+    .guide-head { padding-top: calc(12px + env(safe-area-inset-top)); }
+    .guide-body { padding: 4px 18px 24px; }
+  }
+
   /* ---------- просмотр презентаций ---------- */
   .viewer {
     position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column;
@@ -293,6 +326,16 @@
   <div class="dots" id="vDots"></div>
 </div>
 <div class="lightbox" id="lightbox"><img id="lightImg" alt=""></div>
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+  <div class="guide-box">
+    <div class="guide-head">
+      <b id="gTitle" data-i18n="guideBtn"></b>
+      <div class="guide-langs"><button data-guide-lang="ru">RU</button><button data-guide-lang="en">EN</button></div>
+      <button class="icon-btn" id="gClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="guide-body" id="gBody"></div>
+  </div>
+</div>
 <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
   <div class="chooser-box">
     <button class="icon-btn close-x" id="chClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -355,7 +398,7 @@ const STRINGS = {
     hello: "Привет! Я Lumo", typing: "Lumo думает…", del: "Удалить", confirmDel: "Удалить этот чат?",
     error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
-    presProduct: "О продукте", presTech: "",
+    presProduct: "О продукте", guideBtn: "Установка", guideErr: "Не удалось открыть инструкцию. Файл INSTALL_RU.md есть в папке Lumo.", presTech: "",
     chooseTitle: "Презентация о Lumo", chooseSub: "На каком языке показать?",
     attach: "Прикрепить картинку (или вставь скриншот: {paste})", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
@@ -373,7 +416,7 @@ const STRINGS = {
     hello: "Hi! I’m Lumo", typing: "Lumo is thinking…", del: "Delete", confirmDel: "Delete this chat?",
     error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
-    presProduct: "About the product", presTech: "",
+    presProduct: "About the product", guideBtn: "Installation", guideErr: "Could not open the guide. The file INSTALL_EN.md is in the Lumo folder.", presTech: "",
     chooseTitle: "Lumo presentation", chooseSub: "Which language would you like?",
     attach: "Attach an image (or paste a screenshot: {paste})", tooMany: "You can attach up to 4 images", removeImg: "Remove",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
@@ -445,10 +488,12 @@ function renderMarkdown(text) {
 
 // ---------- отрисовка ----------
 const DECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/></svg>';
+const GUIDE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>';
 function welcomeHtml() {
   return `<div class="welcome"><div class="big-orb"></div><h2>${t("hello")}</h2><p>${t("hints")[state.mode]}</p>
     <div class="pres">
       <button class="pbtn primary" data-choose>${DECK_ICON}${t("presProduct")}</button>
+      <button class="pbtn" data-guide>${GUIDE_ICON}${t("guideBtn")}</button>
     </div></div>`;
 }
 function renderChatList() {
@@ -804,6 +849,84 @@ $("stage").addEventListener("touchend", (e) => {
   const dx = e.changedTouches[0].clientX - touchX;
   if (Math.abs(dx) > 40) showSlide(viewer.i + (dx < 0 ? 1 : -1));
   touchX = null;
+});
+
+// ---------- инструкция по установке ----------
+function guideMarkdown(md) {
+  const inline = (s) => escapeHtml(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, href) => {
+      const g = href.match(/^INSTALL_(RU|EN)\.md$/);
+      if (g) return `<a href="#" data-guide-lang="${g[1].toLowerCase()}">${label}</a>`;
+      if (/^https?:\/\//.test(href)) return `<a href="${href}" target="_blank" rel="noopener">${label}</a>`;
+      return label;
+    });
+  const lines = md.replace(/\r/g, "").split("\n");
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    const h = l.match(/^(#{1,3})\s+(.*)$/);
+    if (!l.trim()) { i++; continue; }
+    if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+    if (/^\s*\|/.test(l)) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+      const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const body = rows.filter((r, k) => !(k === 1 && /^[\s|:-]+$/.test(r)));
+      const [head, ...rest] = body;
+      out.push('<div class="tbl"><table><thead><tr>' + cells(head).map((c) => `<th>${inline(c)}</th>`).join("") +
+        "</tr></thead><tbody>" + rest.map((r) => "<tr>" + cells(r).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>").join("") +
+        "</tbody></table></div>");
+      continue;
+    }
+    const listRe = /^\s*(\d+[.)]|[-*•])\s+/;
+    if (listRe.test(l)) {
+      const ordered = /^\s*\d/.test(l);
+      const items = [];
+      while (i < lines.length && listRe.test(lines[i])) items.push(lines[i++].replace(listRe, ""));
+      const tag = ordered ? "ol" : "ul";
+      out.push(`<${tag}>` + items.map((it) => `<li>${inline(it)}</li>`).join("") + `</${tag}>`);
+      continue;
+    }
+    const para = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3}\s|\s*\||\s*(\d+[.)]|[-*•])\s)/.test(lines[i])) para.push(lines[i++]);
+    out.push(`<p>${para.map(inline).join("<br>")}</p>`);
+  }
+  return out.join("\n");
+}
+const guideCache = {};
+async function showGuide(l) {
+  document.querySelectorAll(".guide-langs [data-guide-lang]").forEach((b) => b.classList.toggle("on", b.dataset.guideLang === l));
+  const body = $("gBody");
+  try {
+    if (!guideCache[l]) {
+      const r = await fetch(`/guide/${l}`);
+      if (!r.ok) throw new Error(r.status);
+      guideCache[l] = guideMarkdown(await r.text());
+    }
+    body.innerHTML = guideCache[l];
+  } catch (err) {
+    body.innerHTML = `<p>${escapeHtml(STRINGS[l].guideErr)}</p>`;
+  }
+  body.scrollTop = 0;
+}
+function openGuide() {
+  $("guide").classList.add("open");
+  showGuide(lang);
+  $("gClose").focus();
+}
+function closeGuide() { $("guide").classList.remove("open"); }
+$("messages").addEventListener("click", (e) => { if (e.target.closest("[data-guide]")) openGuide(); });
+$("guide").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-guide-lang]");
+  if (b) { e.preventDefault(); showGuide(b.dataset.guideLang); }
+  else if (e.target === $("guide")) closeGuide();
+});
+$("gClose").onclick = closeGuide;
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("guide").classList.contains("open")) closeGuide();
 });
 
 // ---------- старт ----------

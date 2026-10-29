@@ -206,6 +206,15 @@ def index():
     return FileResponse(BASE_DIR / "static" / "index.html")
 
 
+@app.get("/guide/{lang}", include_in_schema=False)
+def install_guide(lang: str):
+    """Installation guide (markdown) shown inside the app."""
+    files = {"ru": "INSTALL_RU.md", "en": "INSTALL_EN.md"}
+    if lang not in files:
+        raise HTTPException(status_code=404, detail="Guide not found")
+    return FileResponse(BASE_DIR / files[lang], media_type="text/markdown; charset=utf-8")
+
+
 @app.get("/decks/{name}", include_in_schema=False)
 def download_deck(name: str):
     if not re.fullmatch(r"lumo_\d+\.pptx", name) or not (DECKS_DIR / name).is_file():
