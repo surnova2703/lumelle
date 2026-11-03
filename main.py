@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -20,6 +21,9 @@ from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
 OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/") + "/api/chat"
 MODEL = os.environ.get("LUMO_MODEL", "qwen3:8b")                # модель для текста
 VISION_MODEL = os.environ.get("LUMO_VISION_MODEL", "qwen3-vl:8b")  # модель для картинок
+# Сколько модель остаётся в памяти после ответа (по умолчанию Ollama выгружает её через 5 минут,
+# и следующий ответ снова ждёт загрузку). "0" — выгружать сразу, если памяти мало.
+KEEP_ALIVE = os.environ.get("LUMO_KEEP_ALIVE", "30m")
 MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent
@@ -110,6 +114,20 @@ TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1, "slides": 0.5, "lear
 
 app = FastAPI(title="Lumo AI")
 
+
+@app.on_event("startup")
+async def warm_up_model():
+    """Загружаем текстовую модель в память заранее, пока открывается браузер:
+    тогда первый ответ приходит без долгого ожидания."""
+    async def load():
+        try:
+            async with httpx.AsyncClient(timeout=300) as client:
+                await client.post(OLLAMA_URL.replace("/api/chat", "/api/generate"),
+                                  json={"model": MODEL, "keep_alive": KEEP_ALIVE})
+        except httpx.HTTPError:
+            pass  # Ollama не запущена — run.py уже подсказал, что делать
+    asyncio.create_task(load())
+
 # Презентации о проекте (PDF из папки docs) открываются с начального экрана
 if (BASE_DIR / "docs").is_dir():
     app.mount("/presentations", StaticFiles(directory=BASE_DIR / "docs"), name="presentations")
@@ -172,6 +190,7 @@ async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_
         "messages": [{"role": "system", "content": system_prompt(mode, ui_lang)}] + messages,
         "stream": False,
         "think": think,
+        "keep_alive": KEEP_ALIVE,
         "options": {"temperature": TEMPERATURE[mode]},
     }
     if fmt is not None:

@@ -67,7 +67,7 @@ Lumo runs on **Windows, macOS and Linux**. You need [Python 3.9+](https://www.py
 
 Step-by-step instructions for each system: **[Installation guide (English)](INSTALL_EN.md)** · **[Инструкция по установке (русский)](INSTALL_RU.md)**. The same guide opens inside Lumo with the **Installation** button on the start screen.
 
-Options: `--model` picks the text model, `--lan` lets other devices in your network (or Tailscale) open Lumo, `--port 9000` changes the port, `--no-browser` doesn't open the browser.
+Options: `--model` picks the text model, `--keep-alive 0` frees memory right after each answer (by default the model stays loaded for 30 minutes and is preloaded at start, so answers come faster), `--lan` lets other devices in your network (or Tailscale) open Lumo, `--port 9000` changes the port, `--no-browser` doesn't open the browser.
 
 ### Hardware
 

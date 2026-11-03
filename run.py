@@ -4,6 +4,7 @@ Usage:  python run.py              (only this computer)
         python run.py --lan        (also other devices on your Wi-Fi / Tailscale)
         python run.py --port 9000
         python run.py --model qwen3:4b   (a smaller model for weaker computers)
+        python run.py --keep-alive 0     (unload the model right after answering, to free memory)
 """
 import argparse
 import os
@@ -60,11 +61,14 @@ def main():
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--model", help="text model, e.g. qwen3:4b")
     parser.add_argument("--vision-model", help="image model, e.g. qwen3-vl:4b")
+    parser.add_argument("--keep-alive", help="how long the model stays in memory, e.g. 30m, 2h or 0 (default 30m)")
     args = parser.parse_args()
     if args.model:
         os.environ["LUMO_MODEL"] = args.model
     if args.vision_model:
         os.environ["LUMO_VISION_MODEL"] = args.vision_model
+    if args.keep_alive:
+        os.environ["LUMO_KEEP_ALIVE"] = args.keep_alive
 
     print("Lumo AI")
     check_ollama()
@@ -79,7 +83,16 @@ def main():
     print("  Stop: Ctrl+C\n")
 
     if not args.no_browser:
-        threading.Thread(target=lambda: (time.sleep(1.5), webbrowser.open(url)), daemon=True).start()
+        def open_when_ready():
+            # открываем браузер, как только сервер ответил (а не через фиксированную паузу)
+            for _ in range(100):
+                try:
+                    with socket.create_connection(("127.0.0.1", args.port), timeout=0.2):
+                        break
+                except OSError:
+                    time.sleep(0.1)
+            webbrowser.open(url)
+        threading.Thread(target=open_when_ready, daemon=True).start()
     uvicorn.run("main:app", host=host, port=args.port)
 
 
