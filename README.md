@@ -2,7 +2,7 @@
 
 **A private AI assistant that runs entirely on your own laptop. No internet, no cloud, no data leaks.**
 
-Lumo runs on Windows, macOS and Linux. It combines a local open-source language model with a small web app. It has four modes: **Chat**, **Write**, **Translate** and **Slides**. Conversations are saved locally, and the model remembers the context of each chat.
+Lumo runs on Windows, macOS and Linux. It combines a local open-source language model with a small web app. It has five modes: **Chat**, **Write**, **Translate**, **Slides** and **Learn**. Conversations are saved locally, and the model remembers the context of each chat.
 
 ![Lumo AI interface](docs/screenshot-en.png)
 
@@ -12,6 +12,7 @@ Lumo runs on Windows, macOS and Linux. It combines a local open-source language 
 - **Write**: emails, posts and essays in the requested tone and length
 - **Translate**: Russian ↔ English, only the translation, no extra comments
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
+- **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
 - **Chat history**: chats are stored in a local SQLite database and survive restarts
 - **Context memory**: the model sees the last 20 messages of the current chat
 - **Images**: attach a screenshot (📎, paste with Ctrl+V / Cmd+V or drag and drop), for example a test question, and Lumo reads it with a local vision model
@@ -32,7 +33,7 @@ FastAPI backend (main.py) ──── SQLite (lumo.db): chats and messages
 Ollama ──── qwen3:8b (local LLM)
 ```
 
-The backend adds a system prompt and a temperature for the chat's mode (chat 0.4, write 0.7, translate 0.1, slides 0.5), loads the chat history from SQLite and sends everything to the model through the Ollama API.
+The backend adds a system prompt and a temperature for the chat's mode (chat 0.4, write 0.7, translate 0.1, slides 0.5, learn 0.4), loads the chat history from SQLite and sends everything to the model through the Ollama API.
 
 ## Tech stack
 

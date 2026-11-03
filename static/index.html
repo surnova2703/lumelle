@@ -142,6 +142,11 @@
   .welcome .pres .pbtn:hover { border-color: var(--accent); }
   .welcome .pres .pbtn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
+  .welcome .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .welcome .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--accent); background: transparent; color: var(--ink); }
+  .welcome .chip:hover { background: var(--accent); color: #14162B; }
+
   /* ---------- выбор языка презентации ---------- */
   .chooser { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(10,12,28,.55); }
   .chooser.open { display: flex; }
@@ -364,6 +369,7 @@
       <button data-mode="write">Write</button>
       <button data-mode="translate">Translate</button>
       <button data-mode="slides">Slides</button>
+      <button data-mode="learn">Learn</button>
     </div>
   </header>
 
@@ -407,7 +413,15 @@ const STRINGS = {
       write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
       translate: "Вставь текст: русский переведу на английский, остальное — на русский.",
       slides: "Напиши тему — я сделаю презентацию: план слайдов, речь в заметках и файл PowerPoint.",
+      learn: "Учим английский (или другой язык — просто назови его). Выбери, с чего начать, или напиши свой вопрос.",
     },
+    learnStarts: [
+      ["Узнать мой уровень", "Определи мой уровень английского: задай несколько вопросов."],
+      ["Грамматика", "Объясни простыми словами одну важную тему грамматики для моего уровня и дай упражнение."],
+      ["Новые слова", "Дай 8 полезных английских слов на тему «Путешествия» и потом проверь меня."],
+      ["Разговор", "Давай потренируем разговор на английском: ты — бариста в кафе, я — посетитель. Исправляй мои ошибки."],
+      ["Проверь мой текст", "Сейчас пришлю текст на английском — проверь ошибки и объясни их."],
+    ],
   },
   en: {
     newChat: "+ New chat", newChatTitle: "New chat", send: "Send", noChats: "No chats yet",
@@ -425,7 +439,15 @@ const STRINGS = {
       write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
       translate: "Paste a text: Russian goes to English, everything else goes to Russian.",
       slides: "Give me a topic and I’ll make a presentation: a slide plan, speaker notes and a PowerPoint file.",
+      learn: "Let’s learn English (or any other language — just name it). Pick a start or ask your own question.",
     },
+    learnStarts: [
+      ["Find my level", "Find out my English level: ask me a few questions."],
+      ["Grammar", "Explain one important grammar topic for my level in simple words and give me an exercise."],
+      ["New words", "Give me 8 useful English words about travel and check how well I remember them."],
+      ["Conversation", "Let’s practise speaking English: you are a barista in a café, I am a customer. Correct my mistakes."],
+      ["Check my text", "I’ll send you a text in English — check it for mistakes and explain them."],
+    ],
   },
 };
 
@@ -494,7 +516,12 @@ function welcomeHtml() {
     <div class="pres">
       <button class="pbtn primary" data-choose>${DECK_ICON}${t("presProduct")}</button>
       <button class="pbtn" data-guide>${GUIDE_ICON}${t("guideBtn")}</button>
-    </div></div>`;
+    </div>${learnChipsHtml()}</div>`;
+}
+function learnChipsHtml() {
+  if (state.mode !== "learn") return '<div class="chips" hidden></div>';
+  return '<div class="chips">' + t("learnStarts").map(([label], i) =>
+    `<button class="chip" data-learn="${i}">${escapeHtml(label)}</button>`).join("") + "</div>";
 }
 function renderChatList() {
   const list = $("chatList");
@@ -556,6 +583,8 @@ function setMode(mode) {
   document.querySelectorAll("#modes button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
   const welcome = document.querySelector(".welcome p");
   if (welcome) welcome.textContent = t("hints")[mode];
+  const chips = document.querySelector(".welcome .chips");
+  if (chips) chips.outerHTML = learnChipsHtml();
 }
 
 function setBusy(busy) {
@@ -919,6 +948,13 @@ function openGuide() {
 }
 function closeGuide() { $("guide").classList.remove("open"); }
 $("messages").addEventListener("click", (e) => { if (e.target.closest("[data-guide]")) openGuide(); });
+$("messages").addEventListener("click", (e) => {
+  const chip = e.target.closest("[data-learn]");
+  if (!chip || state.busy) return;
+  const prompt = t("learnStarts")[+chip.dataset.learn][1];
+  if (/пришлю|I’ll send/.test(prompt)) { $("input").focus(); $("input").placeholder = prompt; return; }
+  send(prompt);
+});
 $("guide").addEventListener("click", (e) => {
   const b = e.target.closest("[data-guide-lang]");
   if (b) { e.preventDefault(); showGuide(b.dataset.guideLang); }
