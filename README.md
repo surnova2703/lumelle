@@ -19,7 +19,7 @@ Lumo runs on Windows, macOS and Linux. It combines a local open-source language 
 - **Images**: attach a screenshot (📎, paste with Ctrl+V / Cmd+V or drag and drop), for example a test question, and Lumo reads it with a local vision model
 - **"Think before answering"**: optional reasoning mode for harder questions (slower, more logical)
 - **Fully offline**: no external requests, no CDNs, system fonts only
-- English and Russian interface (auto-detected, switchable)
+- Interface in Russian, English, Chinese, French and German (auto-detected, switchable)
 - Light and dark theme, mobile layout
 
 ## How it works

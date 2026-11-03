@@ -5,7 +5,7 @@ import sqlite3
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -51,7 +51,7 @@ MODES = {
     "translate": (
         "You are a professional translator who works with any language. "
         "If the user names a target language (for example 'на испанский:', 'to German', 'in Chinese'), translate into it. "
-        "If no language is named: Russian text goes to English, any other text goes to Russian. "
+        "If no language is named: text in {ui} goes to {other}, text in any other language goes to {ui}. "
         "If an image is attached, translate the text in the image. "
         "Keep the meaning, tone and formatting; translate idioms naturally, not word for word. "
         "Output only the translation, with no explanations. If the user asks about a word or phrase, "
@@ -94,6 +94,18 @@ MODES = {
 }
 
 # «Температура»: ниже = точнее и предсказуемее, выше = креативнее
+# Interface languages: the model uses them for the default translation direction
+# and for messages that have no clear language (for example only an image)
+UI_LANGS = {"ru": "Russian", "en": "English", "zh": "Chinese", "fr": "French", "de": "German"}
+
+
+def system_prompt(mode: str, ui_lang: Optional[str]) -> str:
+    ui = UI_LANGS.get(ui_lang or "ru", "Russian")
+    other = "Russian" if ui == "English" else "English"
+    prompt = MODES[mode].replace("{ui}", ui).replace("{other}", other)
+    return prompt + f" The user's interface language is {ui}: use it when the message itself has no clear language."
+
+
 TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1, "slides": 0.5, "learn": 0.4}
 
 app = FastAPI(title="Lumo AI")
@@ -152,12 +164,12 @@ def get_chat_or_404(conn, chat_id: int):
 
 # ---------- обращение к модели ----------
 
-async def call_model(mode: str, messages: List[dict], think: bool, fmt=None) -> str:
+async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_lang: Optional[str] = None) -> str:
     has_images = any(m.get("images") for m in messages)
     model = VISION_MODEL if has_images else MODEL
     payload = {
         "model": model,
-        "messages": [{"role": "system", "content": MODES[mode]}] + messages,
+        "messages": [{"role": "system", "content": system_prompt(mode, ui_lang)}] + messages,
         "stream": False,
         "think": think,
         "options": {"temperature": TEMPERATURE[mode]},
@@ -182,11 +194,11 @@ async def call_model(mode: str, messages: List[dict], think: bool, fmt=None) -> 
     return r.json()["message"]["content"].strip()
 
 
-async def answer_for(mode: str, messages: List[dict], think: bool) -> str:
+async def answer_for(mode: str, messages: List[dict], think: bool, ui_lang: Optional[str] = None) -> str:
     """Ответ модели; в режиме Slides — план слайдов + готовый .pptx."""
     if mode != "slides":
-        return await call_model(mode, messages, think)
-    raw = await call_model(mode, messages, think, fmt=SLIDES_SCHEMA)
+        return await call_model(mode, messages, think, ui_lang=ui_lang)
+    raw = await call_model(mode, messages, think, fmt=SLIDES_SCHEMA, ui_lang=ui_lang)
     try:
         deck = clean_deck(json.loads(raw))
     except (ValueError, TypeError, AttributeError):
@@ -211,6 +223,7 @@ class AskRequest(BaseModel):
     text: str = ""
     think: bool = False  # True = модель сначала «думает»: дольше, но логичнее
     images: List[str] = []  # картинки в base64 (без префикса data:)
+    ui_lang: Optional[str] = None  # язык интерфейса: ru, en, zh, fr, de
 
 
 class NewChat(BaseModel):
@@ -221,6 +234,7 @@ class ChatMessage(BaseModel):
     text: str = ""
     think: bool = False
     images: List[str] = []
+    ui_lang: Optional[str] = None
 
 
 class ChatUpdate(BaseModel):
@@ -260,7 +274,7 @@ async def ask(req: AskRequest):
     msg = {"role": "user", "content": req.text}
     if req.images:
         msg["images"] = req.images
-    answer = await answer_for(req.mode, [msg], req.think)
+    answer = await answer_for(req.mode, [msg], req.think, req.ui_lang)
     return {"mode": req.mode, "answer": answer}
 
 
@@ -325,7 +339,7 @@ async def ask_in_chat(chat_id: int, req: ChatMessage):
         current["images"] = req.images
     messages.append(current)
 
-    answer = await answer_for(chat["mode"], messages, req.think)
+    answer = await answer_for(chat["mode"], messages, req.think, req.ui_lang)
 
     with db() as conn:
         conn.executemany(

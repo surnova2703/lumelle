@@ -81,8 +81,11 @@
   .chat-item:hover .del { opacity: 1; }
   .chat-item .del:hover { color: #FF9C8A; }
   .empty-list { padding: 12px; color: var(--side-muted); font-size: 14px; }
-  .lang { margin: 8px 16px 16px; padding: 8px 12px; border: 1px solid var(--side-hover); border-radius: 8px; background: none; color: var(--side-muted); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+  .lang { position: relative; display: flex; align-items: center; gap: 8px; margin: 8px 16px 16px; padding: 0 12px; border: 1px solid var(--side-hover); border-radius: 8px; color: var(--side-muted); font-size: 13px; cursor: pointer; }
   .lang:hover { color: var(--side-ink); background: var(--side-hover); }
+  .lang svg { width: 15px; height: 15px; flex: none; pointer-events: none; }
+  .lang select { flex: 1; appearance: none; -webkit-appearance: none; border: 0; background: none; color: inherit; font: inherit; padding: 8px 0; cursor: pointer; outline: none; }
+  .lang select option { color: #14162B; background: #fff; }
 
   /* ---------- основная часть ---------- */
   main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -190,6 +193,7 @@
   .guide-body h2 { font-size: 19px; margin: 26px 0 8px; padding-top: 14px; border-top: 1px solid var(--line); }
   .guide-body h3 { font-size: 16px; margin: 20px 0 6px; }
   .guide-body p { margin: 8px 0; }
+  .guide-body .guide-note { margin-top: 16px; padding: 10px 14px; border-radius: 10px; background: var(--bg); color: var(--muted); font-size: 14px; }
   .guide-body ol, .guide-body ul { margin: 8px 0; padding-left: 22px; }
   .guide-body li { margin: 6px 0; }
   .guide-body code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; padding: 1px 5px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); word-break: break-word; }
@@ -313,7 +317,7 @@
   </div>
   <button class="new-chat" id="newChat" data-i18n="newChat"></button>
   <ul class="chat-list" id="chatList"></ul>
-  <button class="lang" id="langBtn"></button>
+  <label class="lang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><select id="langSel" aria-label="Language"></select><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></label>
 </aside>
 <div class="scrim" id="scrim"></div>
 <div class="viewer" id="viewer" role="dialog" aria-modal="true">
@@ -402,7 +406,7 @@ const STRINGS = {
     placeholder: "Напиши сообщение…  (Enter — отправить, Shift+Enter — новая строка)",
     think: "Думать перед ответом (дольше, но логичнее)", offline: "Работает офлайн",
     hello: "Привет! Я Lumo", typing: "Lumo думает…", del: "Удалить", confirmDel: "Удалить этот чат?",
-    error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.", lang: "🌐 English",
+    error: "Не получилось ответить: ", errorHint: ". Проверь, что Ollama запущена.",
     placeholderShort: "Напиши сообщение…", closeSide: "Скрыть панель", openSide: "Показать чаты",
     presProduct: "О продукте", guideBtn: "Установка", guideErr: "Не удалось открыть инструкцию. Файл INSTALL_RU.md есть в папке Lumo.", presTech: "",
     chooseTitle: "Презентация о Lumo", chooseSub: "На каком языке показать?",
@@ -428,7 +432,7 @@ const STRINGS = {
     placeholder: "Type a message…  (Enter to send, Shift+Enter for a new line)",
     think: "Think before answering (slower, but more logical)", offline: "Works offline",
     hello: "Hi! I’m Lumo", typing: "Lumo is thinking…", del: "Delete", confirmDel: "Delete this chat?",
-    error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.", lang: "🌐 Русский",
+    error: "Couldn’t answer: ", errorHint: ". Check that Ollama is running.",
     placeholderShort: "Type a message…", closeSide: "Hide sidebar", openSide: "Show chats",
     presProduct: "About the product", guideBtn: "Installation", guideErr: "Could not open the guide. The file INSTALL_EN.md is in the Lumo folder.", presTech: "",
     chooseTitle: "Lumo presentation", chooseSub: "Which language would you like?",
@@ -449,11 +453,91 @@ const STRINGS = {
       ["Check my text", "I’ll send you a text in English — check it for mistakes and explain them."],
     ],
   },
+  zh: {
+    newChat: "+ 新对话", newChatTitle: "新对话", send: "发送", noChats: "还没有对话",
+    placeholder: "输入消息…（Enter 发送，Shift+Enter 换行）",
+    think: "先思考再回答（更慢，但更有条理）", offline: "离线运行",
+    hello: "你好！我是 Lumo", typing: "Lumo 正在思考…", del: "删除", confirmDel: "删除这个对话？",
+    error: "无法回答：", errorHint: "。请检查 Ollama 是否已启动。",
+    placeholderShort: "输入消息…", closeSide: "隐藏侧栏", openSide: "显示对话",
+    presProduct: "关于产品", guideBtn: "安装", guideErr: "无法打开说明。INSTALL_EN.md 文件在 Lumo 文件夹中。", guideNote: "安装说明提供英文和俄文版本。", presTech: "",
+    chooseTitle: "Lumo 演示文稿", chooseSub: "选择演示语言",
+    attach: "添加图片（或粘贴截图：{paste}）", tooMany: "最多可添加 4 张图片", removeImg: "移除",
+    close: "关闭", prev: "上一张", next: "下一张", slide: "幻灯片",
+    hints: {
+      chat: "随便问我什么——我会回答，并记住这个对话的上下文。",
+      write: "描述你需要的文字：邮件、帖子、文章。写明语气和长度。",
+      translate: "粘贴文本。默认：中文 → 英文，其他语言 → 中文。需要其他语言，请写，例如“译成西班牙语：…”。",
+      slides: "告诉我主题，我会做一份演示文稿：幻灯片提纲、演讲备注和 PowerPoint 文件。",
+      learn: "一起学英语（或其他语言——说出名称即可）。选择一个开始方式，或直接提问。",
+    },
+    learnStarts: [
+      ["测试我的水平", "测一下我的英语水平：问我几个问题。"],
+      ["语法", "用简单的话讲解一个适合我水平的重要语法点，并给我一个练习。"],
+      ["新单词", "给我 8 个关于旅行的实用英语单词，然后考考我。"],
+      ["对话练习", "我们来练习英语对话：你是咖啡馆的咖啡师，我是顾客。请纠正我的错误。"],
+      ["检查我的文字", "我会发一段英文——请检查错误并解释。"],
+    ],
+  },
+  fr: {
+    newChat: "+ Nouvelle discussion", newChatTitle: "Nouvelle discussion", send: "Envoyer", noChats: "Aucune discussion",
+    placeholder: "Écrivez un message…  (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)",
+    think: "Réfléchir avant de répondre (plus lent, mais plus logique)", offline: "Fonctionne hors ligne",
+    hello: "Bonjour ! Je suis Lumo", typing: "Lumo réfléchit…", del: "Supprimer", confirmDel: "Supprimer cette discussion ?",
+    error: "Impossible de répondre : ", errorHint: ". Vérifiez qu’Ollama est lancé.",
+    placeholderShort: "Écrivez un message…", closeSide: "Masquer le panneau", openSide: "Afficher les discussions",
+    presProduct: "À propos", guideBtn: "Installation", guideErr: "Impossible d’ouvrir le guide. Le fichier INSTALL_EN.md se trouve dans le dossier Lumo.", guideNote: "Le guide d’installation existe en anglais et en russe.", presTech: "",
+    chooseTitle: "Présentation de Lumo", chooseSub: "Dans quelle langue ?",
+    attach: "Joindre une image (ou coller une capture : {paste})", tooMany: "4 images maximum", removeImg: "Retirer",
+    close: "Fermer", prev: "Diapositive précédente", next: "Diapositive suivante", slide: "Diapositive",
+    hints: {
+      chat: "Posez-moi n’importe quelle question : je réponds et je garde le contexte de cette discussion.",
+      write: "Décrivez le texte voulu : e-mail, post, essai. Précisez le ton et la longueur.",
+      translate: "Collez un texte. Par défaut : français → anglais, autres langues → français. Pour une autre langue, écrivez par exemple « en espagnol : … ».",
+      slides: "Donnez-moi un sujet : je prépare une présentation avec le plan des diapositives, les notes de l’orateur et un fichier PowerPoint.",
+      learn: "Apprenons l’anglais (ou une autre langue : il suffit de la nommer). Choisissez un point de départ ou posez votre question.",
+    },
+    learnStarts: [
+      ["Mon niveau", "Évalue mon niveau d’anglais : pose-moi quelques questions."],
+      ["Grammaire", "Explique simplement un point de grammaire important pour mon niveau et donne-moi un exercice."],
+      ["Vocabulaire", "Donne-moi 8 mots anglais utiles sur le voyage, puis interroge-moi."],
+      ["Conversation", "Entraînons-nous à parler anglais : tu es barista dans un café, je suis client. Corrige mes erreurs."],
+      ["Corriger mon texte", "Je vais t’envoyer un texte en anglais : corrige les erreurs et explique-les."],
+    ],
+  },
+  de: {
+    newChat: "+ Neuer Chat", newChatTitle: "Neuer Chat", send: "Senden", noChats: "Noch keine Chats",
+    placeholder: "Nachricht eingeben…  (Enter zum Senden, Umschalt+Enter für neue Zeile)",
+    think: "Vor dem Antworten nachdenken (langsamer, aber logischer)", offline: "Funktioniert offline",
+    hello: "Hallo! Ich bin Lumo", typing: "Lumo denkt nach…", del: "Löschen", confirmDel: "Diesen Chat löschen?",
+    error: "Antwort nicht möglich: ", errorHint: ". Prüfe, ob Ollama läuft.",
+    placeholderShort: "Nachricht eingeben…", closeSide: "Seitenleiste ausblenden", openSide: "Chats anzeigen",
+    presProduct: "Über das Produkt", guideBtn: "Installation", guideErr: "Die Anleitung konnte nicht geöffnet werden. Die Datei INSTALL_EN.md liegt im Lumo-Ordner.", guideNote: "Die Installationsanleitung gibt es auf Englisch und Russisch.", presTech: "",
+    chooseTitle: "Lumo-Präsentation", chooseSub: "In welcher Sprache?",
+    attach: "Bild anhängen (oder Screenshot einfügen: {paste})", tooMany: "Höchstens 4 Bilder", removeImg: "Entfernen",
+    close: "Schließen", prev: "Vorherige Folie", next: "Nächste Folie", slide: "Folie",
+    hints: {
+      chat: "Frag mich alles – ich antworte und merke mir den Kontext dieses Chats.",
+      write: "Beschreibe den gewünschten Text: E-Mail, Post, Aufsatz. Nenne Ton und Länge.",
+      translate: "Füge einen Text ein. Standard: Deutsch → Englisch, andere Sprachen → Deutsch. Für eine andere Sprache schreib z. B. „auf Spanisch: …“.",
+      slides: "Nenne ein Thema – ich erstelle eine Präsentation: Folienplan, Sprechernotizen und eine PowerPoint-Datei.",
+      learn: "Lass uns Englisch lernen (oder eine andere Sprache – nenne sie einfach). Wähle einen Einstieg oder stell deine Frage.",
+    },
+    learnStarts: [
+      ["Mein Niveau", "Finde mein Englischniveau heraus: Stell mir ein paar Fragen."],
+      ["Grammatik", "Erkläre einfach ein wichtiges Grammatikthema für mein Niveau und gib mir eine Übung."],
+      ["Neue Wörter", "Gib mir 8 nützliche englische Wörter zum Thema Reisen und frag mich danach ab."],
+      ["Gespräch", "Lass uns Englisch sprechen üben: Du bist Barista in einem Café, ich bin Gast. Korrigiere meine Fehler."],
+      ["Text prüfen", "Ich schicke dir gleich einen englischen Text – finde die Fehler und erkläre sie."],
+    ],
+  },
 };
 
+const LANG_NAMES = { ru: "Русский", en: "English", zh: "中文", fr: "Français", de: "Deutsch" };
 function detectLang() {
-  try { const saved = localStorage.getItem("lumo-lang"); if (saved) return saved; } catch (e) {}
-  return (navigator.language || "en").toLowerCase().startsWith("ru") ? "ru" : "en";
+  try { const saved = localStorage.getItem("lumo-lang"); if (saved && STRINGS[saved]) return saved; } catch (e) {}
+  const nav = (navigator.language || "en").toLowerCase().slice(0, 2);
+  return STRINGS[nav] ? nav : "en";
 }
 let lang = detectLang();
 // Cmd на Mac/iPhone, Ctrl на Windows, Linux и Android
@@ -465,7 +549,7 @@ function applyLang() {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); el.setAttribute("aria-label", el.title); });
   $("input").placeholder = window.matchMedia("(max-width: 760px)").matches ? t("placeholderShort") : t("placeholder");
-  $("langBtn").textContent = t("lang");
+  $("langSel").value = lang;
   if (!state.current) $("chatTitle").textContent = t("newChatTitle");
   const welcome = document.querySelector(".welcome");
   if (welcome) welcome.outerHTML = welcomeHtml();
@@ -643,7 +727,7 @@ async function send(text, images = []) {
     }
     const res = await api(`/chats/${state.current.id}/ask`, {
       method: "POST",
-      body: { text, images, think: $("think").checked },
+      body: { text, images, think: $("think").checked, ui_lang: lang },
     });
     typing.remove();
     addMessage("assistant", res.answer);
@@ -771,8 +855,9 @@ window.addEventListener("resize", () => {
   if (!isMobile()) document.body.classList.remove("menu-open");
   $("input").placeholder = isMobile() ? t("placeholderShort") : t("placeholder");
 });
-$("langBtn").onclick = () => {
-  lang = lang === "ru" ? "en" : "ru";
+$("langSel").innerHTML = Object.entries(LANG_NAMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+$("langSel").onchange = () => {
+  lang = $("langSel").value;
   try { localStorage.setItem("lumo-lang", lang); } catch (e) {}
   applyLang();
 };
@@ -935,15 +1020,15 @@ async function showGuide(l) {
       if (!r.ok) throw new Error(r.status);
       guideCache[l] = guideMarkdown(await r.text());
     }
-    body.innerHTML = guideCache[l];
+    body.innerHTML = (lang !== "ru" && lang !== "en" ? `<p class="guide-note">${escapeHtml(t("guideNote"))}</p>` : "") + guideCache[l];
   } catch (err) {
-    body.innerHTML = `<p>${escapeHtml(STRINGS[l].guideErr)}</p>`;
+    body.innerHTML = `<p>${escapeHtml(t("guideErr"))}</p>`;
   }
   body.scrollTop = 0;
 }
 function openGuide() {
   $("guide").classList.add("open");
-  showGuide(lang);
+  showGuide(lang === "ru" ? "ru" : "en");
   $("gClose").focus();
 }
 function closeGuide() { $("guide").classList.remove("open"); }
