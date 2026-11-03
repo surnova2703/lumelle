@@ -86,7 +86,10 @@
   .lang { position: relative; display: flex; align-items: center; gap: 8px; margin: 8px 16px 16px; padding: 0 12px; border: 1px solid var(--side-hover); border-radius: 8px; color: var(--side-muted); font-size: 13px; cursor: pointer; }
   .lang:hover { color: var(--side-ink); background: var(--side-hover); }
   .lang svg { width: 15px; height: 15px; flex: none; pointer-events: none; }
-  .lang select { flex: 1; appearance: none; -webkit-appearance: none; border: 0; background: none; color: inherit; font: inherit; padding: 8px 0; cursor: pointer; outline: none; }
+  .lang { min-height: 36px; justify-content: space-between; }
+  /* список растянут на всю кнопку: открывается по клику в любом месте, в том числе по стрелке */
+  .lang select { position: absolute; inset: 0; width: 100%; appearance: none; -webkit-appearance: none; border: 0; background: none; color: inherit; font: inherit; padding: 0 34px 0 35px; cursor: pointer; outline: none; }
+  .lang:focus-within { border-color: var(--accent); }
   .lang select option { color: #14162B; background: #fff; }
 
   /* ---------- основная часть ---------- */
