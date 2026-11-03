@@ -151,6 +151,7 @@
   .welcome .pres .pbtn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
   .welcome .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .welcome .chips[hidden] { display: none; }
   .welcome .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; cursor: pointer;
     border: 1px solid var(--accent); background: transparent; color: var(--ink); }
   .welcome .chip:hover { background: var(--accent); color: #14162B; }
@@ -421,7 +422,7 @@ const STRINGS = {
     attach: "Прикрепить картинку (или вставь скриншот: {paste})", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
     hints: {
-      chat: "Задай любой вопрос — я отвечу и запомню контекст этого чата.",
+      chat: "Чем помочь? Задай любой вопрос или выбери режим сверху: тексты, перевод, презентации или изучение языков.",
       write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
       translate: "Вставь текст. Без указаний: русский → английский, остальное → русский. Нужен другой язык — напиши, например, «на испанский: …».",
       slides: "Напиши тему — я сделаю презентацию: план слайдов, речь в заметках и файл PowerPoint.",
@@ -447,7 +448,7 @@ const STRINGS = {
     attach: "Attach an image (or paste a screenshot: {paste})", tooMany: "You can attach up to 4 images", removeImg: "Remove",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
     hints: {
-      chat: "Ask me anything — I’ll answer and remember the context of this chat.",
+      chat: "How can I help? Ask me anything, or pick a mode at the top: writing, translation, slides or language learning.",
       write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
       translate: "Paste a text. By default Russian → English and everything else → Russian. For another language write, for example, “to Spanish: …”.",
       slides: "Give me a topic and I’ll make a presentation: a slide plan, speaker notes and a PowerPoint file.",
@@ -473,7 +474,7 @@ const STRINGS = {
     attach: "添加图片（或粘贴截图：{paste}）", tooMany: "最多可添加 4 张图片", removeImg: "移除",
     close: "关闭", prev: "上一张", next: "下一张", slide: "幻灯片",
     hints: {
-      chat: "随便问我什么——我会回答，并记住这个对话的上下文。",
+      chat: "有什么可以帮你？随便问我，或在上方选择模式：写作、翻译、演示文稿或语言学习。",
       write: "描述你需要的文字：邮件、帖子、文章。写明语气和长度。",
       translate: "粘贴文本。默认：中文 → 英文，其他语言 → 中文。需要其他语言，请写，例如“译成西班牙语：…”。",
       slides: "告诉我主题，我会做一份演示文稿：幻灯片提纲、演讲备注和 PowerPoint 文件。",
@@ -499,7 +500,7 @@ const STRINGS = {
     attach: "Joindre une image (ou coller une capture : {paste})", tooMany: "4 images maximum", removeImg: "Retirer",
     close: "Fermer", prev: "Diapositive précédente", next: "Diapositive suivante", slide: "Diapositive",
     hints: {
-      chat: "Posez-moi n’importe quelle question : je réponds et je garde le contexte de cette discussion.",
+      chat: "Comment puis-je vous aider ? Posez votre question ou choisissez un mode en haut : rédaction, traduction, présentations ou langues.",
       write: "Décrivez le texte voulu : e-mail, post, essai. Précisez le ton et la longueur.",
       translate: "Collez un texte. Par défaut : français → anglais, autres langues → français. Pour une autre langue, écrivez par exemple « en espagnol : … ».",
       slides: "Donnez-moi un sujet : je prépare une présentation avec le plan des diapositives, les notes de l’orateur et un fichier PowerPoint.",
@@ -525,7 +526,7 @@ const STRINGS = {
     attach: "Bild anhängen (oder Screenshot einfügen: {paste})", tooMany: "Höchstens 4 Bilder", removeImg: "Entfernen",
     close: "Schließen", prev: "Vorherige Folie", next: "Nächste Folie", slide: "Folie",
     hints: {
-      chat: "Frag mich alles – ich antworte und merke mir den Kontext dieses Chats.",
+      chat: "Wie kann ich helfen? Frag mich etwas oder wähle oben einen Modus: Schreiben, Übersetzen, Präsentationen oder Sprachenlernen.",
       write: "Beschreibe den gewünschten Text: E-Mail, Post, Aufsatz. Nenne Ton und Länge.",
       translate: "Füge einen Text ein. Standard: Deutsch → Englisch, andere Sprachen → Deutsch. Für eine andere Sprache schreib z. B. „auf Spanisch: …“.",
       slides: "Nenne ein Thema – ich erstelle eine Präsentation: Folienplan, Sprechernotizen und eine PowerPoint-Datei.",
