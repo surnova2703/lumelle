@@ -355,6 +355,9 @@
       <p data-i18n="chooseSub"></p>
       <button class="lang-opt" data-pick-lang="en"><span class="code">EN</span><span>English</span></button>
       <button class="lang-opt" data-pick-lang="ru"><span class="code">RU</span><span>Русский</span></button>
+      <button class="lang-opt" data-pick-lang="zh"><span class="code">ZH</span><span>中文</span></button>
+      <button class="lang-opt" data-pick-lang="fr"><span class="code">FR</span><span>Français</span></button>
+      <button class="lang-opt" data-pick-lang="de"><span class="code">DE</span><span>Deutsch</span></button>
     </div>
     <div class="step" id="stepType" hidden>
       <button class="back-btn" id="chBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span id="backLabel"></span></button>
@@ -870,6 +873,12 @@ const DECKS = {
   ru: { title: "Lumo AI — Презентация о продукте", folder: "ru", count: 9, pdf: "Lumo_AI_presentation_RU.pdf" },
   tech: { title: "Lumo AI — Техническая презентация", folder: "tech", count: 13, pdf: "Lumo_AI_tech_RU.pdf" },
   "tech-en": { title: "Lumo AI — Technical presentation", folder: "tech-en", count: 13, pdf: "Lumo_AI_tech_EN.pdf" },
+  zh: { title: "Lumo AI — 产品介绍", folder: "zh", count: 9, pdf: "Lumo_AI_presentation_ZH.pdf" },
+  "tech-zh": { title: "Lumo AI — 技术介绍", folder: "tech-zh", count: 13, pdf: "Lumo_AI_tech_ZH.pdf" },
+  fr: { title: "Lumo AI — Présentation du produit", folder: "fr", count: 9, pdf: "Lumo_AI_presentation_FR.pdf" },
+  "tech-fr": { title: "Lumo AI — Présentation technique", folder: "tech-fr", count: 13, pdf: "Lumo_AI_tech_FR.pdf" },
+  de: { title: "Lumo AI — Produktpräsentation", folder: "de", count: 9, pdf: "Lumo_AI_presentation_DE.pdf" },
+  "tech-de": { title: "Lumo AI — Technische Präsentation", folder: "tech-de", count: 13, pdf: "Lumo_AI_tech_DE.pdf" },
 };
 const viewer = { deck: null, i: 0 };
 // подписи второго шага — на языке выбранной презентации
@@ -878,6 +887,12 @@ const TYPE_TEXT = {
         tech: "Technical", techSub: "Architecture, stack, API and data", introKey: "en", techKey: "tech-en" },
   ru: { title: "Какую презентацию?", sub: "Русский", back: "Язык", intro: "Ознакомительная", introSub: "О продукте: что такое Lumo и для кого он",
         tech: "Техническая", techSub: "Архитектура, стек, API и данные", introKey: "ru", techKey: "tech" },
+  zh: { title: "选择哪份演示？", sub: "中文", back: "语言", intro: "产品介绍", introSub: "Lumo 是什么，适合谁",
+        tech: "技术介绍", techSub: "架构、技术栈、API 和数据", introKey: "zh", techKey: "tech-zh" },
+  fr: { title: "Quelle présentation ?", sub: "Français", back: "Langue", intro: "Découverte", introSub: "Le produit : ce qu’est Lumo et pour qui",
+        tech: "Technique", techSub: "Architecture, stack, API et données", introKey: "fr", techKey: "tech-fr" },
+  de: { title: "Welche Präsentation?", sub: "Deutsch", back: "Sprache", intro: "Einführung", introSub: "Das Produkt: was Lumo ist und für wen",
+        tech: "Technisch", techSub: "Architektur, Stack, API und Daten", introKey: "de", techKey: "tech-de" },
 };
 
 function openDeck(key) {

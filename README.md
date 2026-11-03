@@ -122,10 +122,16 @@ The start screen has an **About the product** button: choose a language, then an
 
 | Presentation | PowerPoint | PDF |
 |---|---|---|
-| Product presentation (English) | [pptx](docs/Lumo_AI_presentation_EN.pptx) | [pdf](docs/Lumo_AI_presentation_EN.pdf) |
-| Презентация о продукте (русский) | [pptx](docs/Lumo_AI_presentation_RU.pptx) | [pdf](docs/Lumo_AI_presentation_RU.pdf) |
-| Technical presentation (English) | [pptx](docs/Lumo_AI_tech_EN.pptx) | [pdf](docs/Lumo_AI_tech_EN.pdf) |
-| Техническая презентация (русский) | [pptx](docs/Lumo_AI_tech_RU.pptx) | [pdf](docs/Lumo_AI_tech_RU.pdf) |
+| Introduction · English | [pptx](docs/Lumo_AI_presentation_EN.pptx) | [pdf](docs/Lumo_AI_presentation_EN.pdf) |
+| Technical · English | [pptx](docs/Lumo_AI_tech_EN.pptx) | [pdf](docs/Lumo_AI_tech_EN.pdf) |
+| Introduction · Русский | [pptx](docs/Lumo_AI_presentation_RU.pptx) | [pdf](docs/Lumo_AI_presentation_RU.pdf) |
+| Technical · Русский | [pptx](docs/Lumo_AI_tech_RU.pptx) | [pdf](docs/Lumo_AI_tech_RU.pdf) |
+| Introduction · 中文 | [pptx](docs/Lumo_AI_presentation_ZH.pptx) | [pdf](docs/Lumo_AI_presentation_ZH.pdf) |
+| Technical · 中文 | [pptx](docs/Lumo_AI_tech_ZH.pptx) | [pdf](docs/Lumo_AI_tech_ZH.pdf) |
+| Introduction · Français | [pptx](docs/Lumo_AI_presentation_FR.pptx) | [pdf](docs/Lumo_AI_presentation_FR.pdf) |
+| Technical · Français | [pptx](docs/Lumo_AI_tech_FR.pptx) | [pdf](docs/Lumo_AI_tech_FR.pdf) |
+| Introduction · Deutsch | [pptx](docs/Lumo_AI_presentation_DE.pptx) | [pdf](docs/Lumo_AI_presentation_DE.pdf) |
+| Technical · Deutsch | [pptx](docs/Lumo_AI_tech_DE.pptx) | [pdf](docs/Lumo_AI_tech_DE.pdf) |
 
 ---
 
