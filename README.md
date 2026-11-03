@@ -8,9 +8,10 @@ Lumo runs on Windows, macOS and Linux. It combines a local open-source language 
 
 ## Features
 
+- **Any language**: every mode answers in the language you write in, or in the one you ask for
 - **Chat**: ask questions and get structured answers (a short answer first, then the details)
 - **Write**: emails, posts and essays in the requested tone and length
-- **Translate**: Russian ↔ English, only the translation, no extra comments
+- **Translate**: any language pair — name the target ("to Spanish: …"); by default Russian → English and everything else → Russian
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
 - **Chat history**: chats are stored in a local SQLite database and survive restarts

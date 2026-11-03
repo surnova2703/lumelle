@@ -30,6 +30,16 @@ SLIDES_SCHEMA = {
     "properties": {
         "title": {"type": "string"},
         "subtitle": {"type": "string"},
+        "labels": {
+            "type": "object",
+            "properties": {
+                "presentation": {"type": "string"},
+                "thanks": {"type": "string"},
+                "questions": {"type": "string"},
+                "download": {"type": "string"},
+            },
+            "required": ["presentation", "thanks", "questions", "download"],
+        },
         "slides": {
             "type": "array",
             "items": {
@@ -43,7 +53,15 @@ SLIDES_SCHEMA = {
             },
         },
     },
-    "required": ["title", "slides"],
+    "required": ["title", "labels", "slides"],
+}
+
+# Service texts if the model did not fill "labels" (Russian or English by the deck's text)
+DEFAULT_LABELS = {
+    "ru": {"presentation": "Презентация", "thanks": "Спасибо за внимание!", "questions": "Вопросы?",
+           "download": "Скачать презентацию (.pptx)"},
+    "en": {"presentation": "Presentation", "thanks": "Thank you for your attention!", "questions": "Any questions?",
+           "download": "Download the presentation (.pptx)"},
 }
 
 
@@ -61,16 +79,21 @@ def clean_deck(deck: dict) -> dict:
             slides.append({"title": title, "bullets": bullets, "notes": str(s.get("notes", "")).strip()[:2000]})
     if not slides:
         raise ValueError("no slides")
+    base = DEFAULT_LABELS["ru" if is_russian(str(deck.get("title", "")) + " ".join(s["title"] for s in slides)) else "en"]
+    got = deck.get("labels") if isinstance(deck.get("labels"), dict) else {}
+    labels = {k: (str(got.get(k, "")).strip()[:60] or v) for k, v in base.items()}
+    if "pptx" not in labels["download"].lower():
+        labels["download"] += " (.pptx)"
     return {
         "title": str(deck.get("title", "")).strip()[:100] or slides[0]["title"],
         "subtitle": str(deck.get("subtitle", "")).strip()[:140],
+        "labels": labels,
         "slides": slides,
     }
 
 
 def outline_markdown(deck: dict, download_url: str) -> str:
     """Chat message that shows the outline and a download link."""
-    ru = is_russian(deck["title"] + " ".join(s["title"] for s in deck["slides"]))
     lines = [f"**{deck['title']}**"]
     if deck["subtitle"]:
         lines.append(deck["subtitle"])
@@ -78,8 +101,7 @@ def outline_markdown(deck: dict, download_url: str) -> str:
     for i, s in enumerate(deck["slides"], 1):
         lines.append(f"{i}. **{s['title']}**" + (f" — {'; '.join(s['bullets'])}" if s["bullets"] else ""))
     lines.append("")
-    label = "Скачать презентацию (.pptx)" if ru else "Download the presentation (.pptx)"
-    lines.append(f"[⬇ {label}]({download_url})")
+    lines.append(f"[⬇ {deck['labels']['download']}]({download_url})")
     return "\n".join(lines)
 
 
@@ -136,7 +158,7 @@ def _glow(slide, cx, cy, r):
 
 
 def build_pptx(deck: dict, path: Path) -> Path:
-    ru = is_russian(deck["title"] + " ".join(s["title"] for s in deck["slides"]))
+    labels = deck["labels"]
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
     blank = prs.slide_layouts[6]
@@ -146,7 +168,7 @@ def build_pptx(deck: dict, path: Path) -> Path:
     s = prs.slides.add_slide(blank)
     _bg(s, NAVY)
     _glow(s, 10.2, 3.75, 2.6)
-    _text(s, 0.8, 1.7, 6.5, 0.4, ("Презентация" if ru else "Presentation").upper(), 14, AMBER, bold=True, spacing=4)
+    _text(s, 0.8, 1.7, 6.5, 0.4, labels["presentation"].upper(), 14, AMBER, bold=True, spacing=4)
     _text(s, 0.8, 2.3, 6.8, 2.4, deck["title"], 48, CREAM, bold=True, font=HEAD_FONT, anchor=MSO_ANCHOR.BOTTOM)
     if deck["subtitle"]:
         _text(s, 0.8, 4.9, 6.6, 1.0, deck["subtitle"], 22, SOFT)
@@ -185,9 +207,9 @@ def build_pptx(deck: dict, path: Path) -> Path:
     s = prs.slides.add_slide(blank)
     _bg(s, NAVY)
     _glow(s, 6.67, 3.1, 2.2)
-    _text(s, 0.8, 5.5, 11.7, 0.9, "Спасибо за внимание!" if ru else "Thank you for your attention!", 40, CREAM,
+    _text(s, 0.8, 5.5, 11.7, 0.9, labels["thanks"], 40, CREAM,
           bold=True, font=HEAD_FONT, align=PP_ALIGN.CENTER)
-    _text(s, 0.8, 6.4, 11.7, 0.5, "Вопросы?" if ru else "Any questions?", 22, AMBER, align=PP_ALIGN.CENTER)
+    _text(s, 0.8, 6.4, 11.7, 0.5, labels["questions"], 22, AMBER, align=PP_ALIGN.CENTER)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(path))
