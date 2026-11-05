@@ -61,12 +61,15 @@ def main():
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--model", help="text model, e.g. qwen3:4b")
     parser.add_argument("--vision-model", help="image model, e.g. qwen3-vl:4b")
+    parser.add_argument("--whisper-model", help="speech recognition model: tiny, base, small (default) or medium")
     parser.add_argument("--keep-alive", help="how long the model stays in memory, e.g. 30m, 2h or 0 (default 30m)")
     args = parser.parse_args()
     if args.model:
         os.environ["LUMELLE_MODEL"] = args.model
     if args.vision_model:
         os.environ["LUMELLE_VISION_MODEL"] = args.vision_model
+    if args.whisper_model:
+        os.environ["LUMELLE_WHISPER"] = args.whisper_model
     if args.keep_alive:
         os.environ["LUMELLE_KEEP_ALIVE"] = args.keep_alive
 

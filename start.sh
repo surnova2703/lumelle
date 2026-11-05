@@ -9,10 +9,14 @@ if [ ! -x .venv/bin/python ]; then
 fi
 
 # Libraries are installed once (internet needed only the first time).
-if [ ! -f .venv/.deps-ok ]; then
+# …and again whenever requirements.txt changes (a new version added a library).
+if ! cat requirements.txt requirements-voice.txt | cmp -s - .venv/.deps-ok; then
   echo "Installing libraries..."
   .venv/bin/python -m pip install --default-timeout=120 --retries 10 -r requirements.txt
-  touch .venv/.deps-ok
+  # voice input is optional: if it can't be installed, Lumelle still starts
+  .venv/bin/python -m pip install --default-timeout=120 --retries 10 -r requirements-voice.txt \
+    || echo "! Voice input (Whisper) was not installed. Everything else works; run the script again later to retry."
+  cat requirements.txt requirements-voice.txt > .venv/.deps-ok
 fi
 
 exec .venv/bin/python run.py "$@"

@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -27,6 +28,10 @@ VISION_MODEL = os.environ.get("LUMELLE_VISION_MODEL", "qwen3-vl:8b")  # моде
 # Сколько модель остаётся в памяти после ответа (по умолчанию Ollama выгружает её через 5 минут,
 # и следующий ответ снова ждёт загрузку). "0" — выгружать сразу, если памяти мало.
 KEEP_ALIVE = os.environ.get("LUMELLE_KEEP_ALIVE", "30m")
+# Распознавание речи (кнопка 🎤): локальная модель Whisper. tiny / base / small / medium:
+# чем больше, тем точнее и медленнее. small (~0,5 ГБ) хорошо понимает русский.
+WHISPER_MODEL = os.environ.get("LUMELLE_WHISPER", "small")
+MAX_AUDIO_BYTES = 25_000_000  # ≈ несколько минут речи
 MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent
@@ -483,6 +488,52 @@ def delete_user(name: str, user: dict = Depends(admin_only)):
         conn.execute("DELETE FROM sessions WHERE user = ?", (name,))
         conn.execute("DELETE FROM users WHERE name = ?", (name,))
     return {"deleted": name}
+
+
+# ---------- распознавание речи ----------
+
+_whisper = None
+
+
+def _load_whisper():
+    """Модель загружается при первом использовании (в первый раз скачивается, ~0,5 ГБ)."""
+    global _whisper
+    if _whisper is None:
+        try:
+            from faster_whisper import WhisperModel
+        except ImportError:
+            raise HTTPException(status_code=501, detail={"code": "stt_missing"})
+        _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
+    return _whisper
+
+
+def _transcribe(path: str, lang):
+    model = _load_whisper()
+    segments, info = model.transcribe(path, language=lang, vad_filter=True, beam_size=1)
+    return " ".join(s.text.strip() for s in segments).strip(), info.language
+
+
+@app.post("/transcribe", summary="Голос → текст (локально, Whisper)")
+async def transcribe(audio: UploadFile = File(...), lang: str = Form(""), user: dict = Depends(current_user)):
+    data = await audio.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty audio")
+    if len(data) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="Recording is too long")
+    import tempfile
+    suffix = Path(audio.filename or "voice.webm").suffix or ".webm"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+        f.write(data)
+        tmp = f.name
+    try:
+        text, detected = await run_in_threadpool(_transcribe, tmp, lang if lang in UI_LANGS else None)
+    except HTTPException:
+        raise
+    except Exception as e:  # повреждённый файл, нет сети при первой загрузке модели и т. п.
+        raise HTTPException(status_code=500, detail={"code": "stt_failed", "error": str(e)[:200]})
+    finally:
+        os.unlink(tmp)
+    return {"text": text, "language": detected}
 
 
 @app.get("/decks/{name}", include_in_schema=False)

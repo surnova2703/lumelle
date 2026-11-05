@@ -1,0 +1,2 @@
+# Optional: speech recognition (local Whisper)
+faster-whisper

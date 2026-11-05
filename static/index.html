@@ -350,6 +350,21 @@
   }
   .send:disabled { opacity: .5; cursor: default; }
   .send-icon { display: none; width: 22px; height: 22px; }
+  @media (max-width: 760px) {
+    .attach { width: 40px; }
+    #form { gap: 6px; }
+    textarea { padding: 12px 10px; }
+  }
+  .opt-left { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .mic { position: relative; font: inherit; }
+  .mic.rec { color: #fff; background: #D9480F; border-color: #D9480F; animation: recpulse 1.2s infinite; }
+  .mic.busy { opacity: .6; cursor: progress; }
+  @keyframes recpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(217,72,15,.45); } 50% { box-shadow: 0 0 0 7px rgba(217,72,15,0); } }
+  .rec-time { position: absolute; bottom: -16px; left: 0; right: 0; font-size: 11px; color: #D9480F; font-variant-numeric: tabular-nums; }
+  .say { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 3px 8px 3px 6px; border: 1px solid var(--line); border-radius: 999px;
+    background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+  .say:hover, .say.on { color: var(--ink); border-color: var(--accent); }
+  .say svg { width: 14px; height: 14px; }
   .options { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: var(--muted); }
   .options label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 
@@ -494,11 +509,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg>
         <input type="file" id="fileInput" accept="image/*" multiple hidden>
       </label>
+      <button type="button" class="attach mic" id="micBtn" data-i18n-title="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span class="rec-time" id="recTime"></span></button>
       <textarea id="input" rows="1"></textarea>
       <button class="send" id="send" type="submit"><span class="send-label" data-i18n="send"></span><svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
     <div class="options">
-      <label><input type="checkbox" id="think"> <span data-i18n="think"></span></label>
+      <span class="opt-left"><label><input type="checkbox" id="think"> <span data-i18n="think"></span></label><label><input type="checkbox" id="speakToggle"> <span data-i18n="readAloud"></span></label></span>
       <span class="offline" data-i18n="offline"></span>
     </div>
   </div>
@@ -510,7 +526,7 @@ const state = { chats: [], current: null, mode: "chat", busy: false };
 
 const STRINGS = {
   ru: {
-    loginSub: "Войди, чтобы открыть свои чаты", lName: "Имя", lPass: "Пароль", show: "Показать", hide: "Скрыть", remember: "Запомнить меня на этом устройстве", loginBtn: "Войти", loginFoot: "Всё хранится на компьютере владельца", wrong: "Неверное имя или пароль. Осталось попыток: {n}", locked: "Слишком много попыток. Попробуй через {m} мин.", logout: "Выйти", roleAdmin: "владелец", roleGuest: "гость", pwBtn: "Пользователи", pwTitle: "Пользователи", pwSub: "У каждого свои чаты. Новый человек при первом входе сам сменит временный пароль.", pwNew: "Новый пароль", save: "Сохранить", saved: "Сохранено", pwShort: "Минимум 4 символа", weak: "Сейчас стоят простые пароли по умолчанию. Смени их, прежде чем открывать Lumelle другим людям.", colName: "Имя", colRole: "Роль", colChats: "Чатов", roleUser: "пользователь", addBtn: "Добавить", tempPw: "Временный пароль", newPwPh: "новый пароль", delUser: "Удалить", confirmUserDel: "Удалить {name} и все его чаты? Это нельзя отменить.", errTaken: "Такое имя уже есть", errBadName: "Имя: до 32 букв или цифр, без пробелов", added: "Добавлен: {name}", mustTitle: "Придумай свой пароль", mustSub: "Сейчас у тебя временный пароль. Задай свой, чтобы продолжить.", mustSave: "Сохранить и продолжить",
+    loginSub: "Войди, чтобы открыть свои чаты", lName: "Имя", lPass: "Пароль", show: "Показать", hide: "Скрыть", remember: "Запомнить меня на этом устройстве", loginBtn: "Войти", loginFoot: "Всё хранится на компьютере владельца", wrong: "Неверное имя или пароль. Осталось попыток: {n}", locked: "Слишком много попыток. Попробуй через {m} мин.", logout: "Выйти", roleAdmin: "владелец", roleGuest: "гость", pwBtn: "Пользователи", pwTitle: "Пользователи", pwSub: "У каждого свои чаты. Новый человек при первом входе сам сменит временный пароль.", pwNew: "Новый пароль", save: "Сохранить", saved: "Сохранено", pwShort: "Минимум 4 символа", weak: "Сейчас стоят простые пароли по умолчанию. Смени их, прежде чем открывать Lumelle другим людям.", colName: "Имя", colRole: "Роль", colChats: "Чатов", roleUser: "пользователь", addBtn: "Добавить", tempPw: "Временный пароль", newPwPh: "новый пароль", delUser: "Удалить", confirmUserDel: "Удалить {name} и все его чаты? Это нельзя отменить.", errTaken: "Такое имя уже есть", errBadName: "Имя: до 32 букв или цифр, без пробелов", added: "Добавлен: {name}", mustTitle: "Придумай свой пароль", mustSub: "Сейчас у тебя временный пароль. Задай свой, чтобы продолжить.", mustSave: "Сохранить и продолжить", say: "Прочитать вслух", sayStop: "Остановить", readAloud: "Читать ответы вслух", mic: "Сказать голосом", micStop: "Остановить запись", transcribing: "Распознаю речь…", sttSlow: "Первый раз скачивается модель распознавания (~0,5 ГБ), это займёт пару минут…", micInsecure: "Микрофон работает только на этом компьютере (127.0.0.1) или по защищённому адресу https. Как его получить — в инструкции, раздел про телефон.", micDenied: "Нет доступа к микрофону. Разреши его в настройках браузера и попробуй ещё раз.", sttMissing: "Распознавание речи не установлено. Перезапусти Lumelle с интернетом — он доустановит нужные библиотеки.", sttFailed: "Не получилось распознать речь: ", sttEmpty: "Ничего не расслышал. Попробуй ещё раз, поближе к микрофону.",
     newChat: "+ Новый чат", newChatTitle: "Новый чат", send: "Отправить", noChats: "Чатов пока нет",
     placeholder: "Напиши сообщение…  (Enter — отправить, Shift+Enter — новая строка)",
     think: "Думать перед ответом (дольше, но логичнее)", offline: "Работает офлайн",
@@ -537,7 +553,7 @@ const STRINGS = {
     ],
   },
   en: {
-    loginSub: "Sign in to open your chats", lName: "Name", lPass: "Password", show: "Show", hide: "Hide", remember: "Remember me on this device", loginBtn: "Sign in", loginFoot: "Everything stays on the owner’s computer", wrong: "Wrong name or password. Attempts left: {n}", locked: "Too many attempts. Try again in {m} min.", logout: "Sign out", roleAdmin: "owner", roleGuest: "guest", pwBtn: "Users", pwTitle: "Users", pwSub: "Everyone has their own chats. A new person changes the temporary password at first sign-in.", pwNew: "New password", save: "Save", saved: "Saved", pwShort: "At least 4 characters", weak: "The simple default passwords are still set. Change them before you open Lumelle to other people.", colName: "Name", colRole: "Role", colChats: "Chats", roleUser: "user", addBtn: "Add", tempPw: "Temporary password", newPwPh: "new password", delUser: "Delete", confirmUserDel: "Delete {name} and all their chats? This can’t be undone.", errTaken: "This name is already taken", errBadName: "Name: up to 32 letters or digits, no spaces", added: "Added: {name}", mustTitle: "Choose your password", mustSub: "You have a temporary password. Set your own to continue.", mustSave: "Save and continue",
+    loginSub: "Sign in to open your chats", lName: "Name", lPass: "Password", show: "Show", hide: "Hide", remember: "Remember me on this device", loginBtn: "Sign in", loginFoot: "Everything stays on the owner’s computer", wrong: "Wrong name or password. Attempts left: {n}", locked: "Too many attempts. Try again in {m} min.", logout: "Sign out", roleAdmin: "owner", roleGuest: "guest", pwBtn: "Users", pwTitle: "Users", pwSub: "Everyone has their own chats. A new person changes the temporary password at first sign-in.", pwNew: "New password", save: "Save", saved: "Saved", pwShort: "At least 4 characters", weak: "The simple default passwords are still set. Change them before you open Lumelle to other people.", colName: "Name", colRole: "Role", colChats: "Chats", roleUser: "user", addBtn: "Add", tempPw: "Temporary password", newPwPh: "new password", delUser: "Delete", confirmUserDel: "Delete {name} and all their chats? This can’t be undone.", errTaken: "This name is already taken", errBadName: "Name: up to 32 letters or digits, no spaces", added: "Added: {name}", mustTitle: "Choose your password", mustSub: "You have a temporary password. Set your own to continue.", mustSave: "Save and continue", say: "Read aloud", sayStop: "Stop", readAloud: "Read answers aloud", mic: "Speak", micStop: "Stop recording", transcribing: "Recognising speech…", sttSlow: "The speech model is being downloaded for the first time (~0.5 GB), this takes a couple of minutes…", micInsecure: "The microphone works only on this computer (127.0.0.1) or over a secure https address. The guide explains how to get one, in the phone section.", micDenied: "No access to the microphone. Allow it in the browser settings and try again.", sttMissing: "Speech recognition is not installed. Restart Lumelle with internet access and it will install the libraries.", sttFailed: "Couldn’t recognise speech: ", sttEmpty: "I didn’t catch anything. Try again a bit closer to the microphone.",
     newChat: "+ New chat", newChatTitle: "New chat", send: "Send", noChats: "No chats yet",
     placeholder: "Type a message…  (Enter to send, Shift+Enter for a new line)",
     think: "Think before answering (slower, but more logical)", offline: "Works offline",
@@ -564,7 +580,7 @@ const STRINGS = {
     ],
   },
   zh: {
-    loginSub: "登录以打开你的对话", lName: "用户名", lPass: "密码", show: "显示", hide: "隐藏", remember: "在此设备上记住我", loginBtn: "登录", loginFoot: "所有数据都保存在主人的电脑上", wrong: "用户名或密码错误。剩余尝试次数：{n}", locked: "尝试次数过多。请在 {m} 分钟后再试。", logout: "退出", roleAdmin: "主人", roleGuest: "访客", pwBtn: "用户", pwTitle: "用户", pwSub: "每个人都有自己的对话。新用户首次登录时会自己修改临时密码。", pwNew: "新密码", save: "保存", saved: "已保存", pwShort: "至少 4 个字符", weak: "目前仍是简单的默认密码。在让其他人使用 Lumelle 之前，请先修改密码。", colName: "用户名", colRole: "角色", colChats: "对话", roleUser: "用户", addBtn: "添加", tempPw: "临时密码", newPwPh: "新密码", delUser: "删除", confirmUserDel: "删除 {name} 及其所有对话？此操作无法撤销。", errTaken: "该用户名已存在", errBadName: "用户名：最多 32 个字母或数字，不含空格", added: "已添加：{name}", mustTitle: "设置你的密码", mustSub: "你现在使用的是临时密码。请设置自己的密码后继续。", mustSave: "保存并继续",
+    loginSub: "登录以打开你的对话", lName: "用户名", lPass: "密码", show: "显示", hide: "隐藏", remember: "在此设备上记住我", loginBtn: "登录", loginFoot: "所有数据都保存在主人的电脑上", wrong: "用户名或密码错误。剩余尝试次数：{n}", locked: "尝试次数过多。请在 {m} 分钟后再试。", logout: "退出", roleAdmin: "主人", roleGuest: "访客", pwBtn: "用户", pwTitle: "用户", pwSub: "每个人都有自己的对话。新用户首次登录时会自己修改临时密码。", pwNew: "新密码", save: "保存", saved: "已保存", pwShort: "至少 4 个字符", weak: "目前仍是简单的默认密码。在让其他人使用 Lumelle 之前，请先修改密码。", colName: "用户名", colRole: "角色", colChats: "对话", roleUser: "用户", addBtn: "添加", tempPw: "临时密码", newPwPh: "新密码", delUser: "删除", confirmUserDel: "删除 {name} 及其所有对话？此操作无法撤销。", errTaken: "该用户名已存在", errBadName: "用户名：最多 32 个字母或数字，不含空格", added: "已添加：{name}", mustTitle: "设置你的密码", mustSub: "你现在使用的是临时密码。请设置自己的密码后继续。", mustSave: "保存并继续", say: "朗读", sayStop: "停止", readAloud: "朗读回答", mic: "语音输入", micStop: "停止录音", transcribing: "正在识别语音…", sttSlow: "首次使用需要下载语音识别模型（约 0.5 GB），需要几分钟…", micInsecure: "麦克风只能在本机（127.0.0.1）或安全的 https 地址上使用。获取方法见安装说明中的手机部分。", micDenied: "无法访问麦克风。请在浏览器设置中允许后重试。", sttMissing: "尚未安装语音识别。请联网重启 Lumelle，它会自动安装所需的库。", sttFailed: "语音识别失败：", sttEmpty: "没有听清。请靠近麦克风再试一次。",
     newChat: "+ 新对话", newChatTitle: "新对话", send: "发送", noChats: "还没有对话",
     placeholder: "输入消息…（Enter 发送，Shift+Enter 换行）",
     think: "先思考再回答（更慢，但更有条理）", offline: "离线运行",
@@ -591,7 +607,7 @@ const STRINGS = {
     ],
   },
   fr: {
-    loginSub: "Connectez-vous pour ouvrir vos discussions", lName: "Nom", lPass: "Mot de passe", show: "Afficher", hide: "Masquer", remember: "Se souvenir de moi sur cet appareil", loginBtn: "Se connecter", loginFoot: "Tout reste sur l’ordinateur du propriétaire", wrong: "Nom ou mot de passe incorrect. Essais restants : {n}", locked: "Trop d’essais. Réessayez dans {m} min.", logout: "Se déconnecter", roleAdmin: "propriétaire", roleGuest: "invité", pwBtn: "Utilisateurs", pwTitle: "Utilisateurs", pwSub: "Chacun a ses propres discussions. Une nouvelle personne change le mot de passe temporaire à sa première connexion.", pwNew: "Nouveau mot de passe", save: "Enregistrer", saved: "Enregistré", pwShort: "Au moins 4 caractères", weak: "Les mots de passe simples par défaut sont toujours actifs. Changez-les avant d’ouvrir Lumelle à d’autres personnes.", colName: "Nom", colRole: "Rôle", colChats: "Discussions", roleUser: "utilisateur", addBtn: "Ajouter", tempPw: "Mot de passe temporaire", newPwPh: "nouveau mot de passe", delUser: "Supprimer", confirmUserDel: "Supprimer {name} et toutes ses discussions ? C’est définitif.", errTaken: "Ce nom est déjà pris", errBadName: "Nom : 32 lettres ou chiffres maximum, sans espaces", added: "Ajouté : {name}", mustTitle: "Choisissez votre mot de passe", mustSub: "Vous avez un mot de passe temporaire. Définissez le vôtre pour continuer.", mustSave: "Enregistrer et continuer",
+    loginSub: "Connectez-vous pour ouvrir vos discussions", lName: "Nom", lPass: "Mot de passe", show: "Afficher", hide: "Masquer", remember: "Se souvenir de moi sur cet appareil", loginBtn: "Se connecter", loginFoot: "Tout reste sur l’ordinateur du propriétaire", wrong: "Nom ou mot de passe incorrect. Essais restants : {n}", locked: "Trop d’essais. Réessayez dans {m} min.", logout: "Se déconnecter", roleAdmin: "propriétaire", roleGuest: "invité", pwBtn: "Utilisateurs", pwTitle: "Utilisateurs", pwSub: "Chacun a ses propres discussions. Une nouvelle personne change le mot de passe temporaire à sa première connexion.", pwNew: "Nouveau mot de passe", save: "Enregistrer", saved: "Enregistré", pwShort: "Au moins 4 caractères", weak: "Les mots de passe simples par défaut sont toujours actifs. Changez-les avant d’ouvrir Lumelle à d’autres personnes.", colName: "Nom", colRole: "Rôle", colChats: "Discussions", roleUser: "utilisateur", addBtn: "Ajouter", tempPw: "Mot de passe temporaire", newPwPh: "nouveau mot de passe", delUser: "Supprimer", confirmUserDel: "Supprimer {name} et toutes ses discussions ? C’est définitif.", errTaken: "Ce nom est déjà pris", errBadName: "Nom : 32 lettres ou chiffres maximum, sans espaces", added: "Ajouté : {name}", mustTitle: "Choisissez votre mot de passe", mustSub: "Vous avez un mot de passe temporaire. Définissez le vôtre pour continuer.", mustSave: "Enregistrer et continuer", say: "Lire à voix haute", sayStop: "Arrêter", readAloud: "Lire les réponses à voix haute", mic: "Parler", micStop: "Arrêter l’enregistrement", transcribing: "Reconnaissance de la parole…", sttSlow: "Le modèle de reconnaissance se télécharge pour la première fois (~0,5 Go), cela prend quelques minutes…", micInsecure: "Le micro ne fonctionne que sur cet ordinateur (127.0.0.1) ou via une adresse https sécurisée. Le guide explique comment l’obtenir, section téléphone.", micDenied: "Pas d’accès au micro. Autorisez-le dans les réglages du navigateur et réessayez.", sttMissing: "La reconnaissance vocale n’est pas installée. Relancez Lumelle avec internet : il installera les bibliothèques.", sttFailed: "Impossible de reconnaître la parole : ", sttEmpty: "Je n’ai rien entendu. Réessayez plus près du micro.",
     newChat: "+ Nouvelle discussion", newChatTitle: "Nouvelle discussion", send: "Envoyer", noChats: "Aucune discussion",
     placeholder: "Écrivez un message…  (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)",
     think: "Réfléchir avant de répondre (plus lent, mais plus logique)", offline: "Fonctionne hors ligne",
@@ -618,7 +634,7 @@ const STRINGS = {
     ],
   },
   de: {
-    loginSub: "Melde dich an, um deine Chats zu öffnen", lName: "Name", lPass: "Passwort", show: "Anzeigen", hide: "Verbergen", remember: "Auf diesem Gerät angemeldet bleiben", loginBtn: "Anmelden", loginFoot: "Alles bleibt auf dem Computer des Besitzers", wrong: "Falscher Name oder falsches Passwort. Verbleibende Versuche: {n}", locked: "Zu viele Versuche. Versuch es in {m} Min. erneut.", logout: "Abmelden", roleAdmin: "Besitzer", roleGuest: "Gast", pwBtn: "Benutzer", pwTitle: "Benutzer", pwSub: "Jeder hat eigene Chats. Neue Personen ändern das vorläufige Passwort bei der ersten Anmeldung.", pwNew: "Neues Passwort", save: "Speichern", saved: "Gespeichert", pwShort: "Mindestens 4 Zeichen", weak: "Es sind noch die einfachen Standardpasswörter gesetzt. Ändere sie, bevor du Lumelle für andere öffnest.", colName: "Name", colRole: "Rolle", colChats: "Chats", roleUser: "Benutzer", addBtn: "Hinzufügen", tempPw: "Vorläufiges Passwort", newPwPh: "neues Passwort", delUser: "Löschen", confirmUserDel: "{name} und alle Chats löschen? Das lässt sich nicht rückgängig machen.", errTaken: "Dieser Name ist schon vergeben", errBadName: "Name: bis zu 32 Buchstaben oder Ziffern, ohne Leerzeichen", added: "Hinzugefügt: {name}", mustTitle: "Wähle dein Passwort", mustSub: "Du hast ein vorläufiges Passwort. Lege dein eigenes fest, um weiterzumachen.", mustSave: "Speichern und weiter",
+    loginSub: "Melde dich an, um deine Chats zu öffnen", lName: "Name", lPass: "Passwort", show: "Anzeigen", hide: "Verbergen", remember: "Auf diesem Gerät angemeldet bleiben", loginBtn: "Anmelden", loginFoot: "Alles bleibt auf dem Computer des Besitzers", wrong: "Falscher Name oder falsches Passwort. Verbleibende Versuche: {n}", locked: "Zu viele Versuche. Versuch es in {m} Min. erneut.", logout: "Abmelden", roleAdmin: "Besitzer", roleGuest: "Gast", pwBtn: "Benutzer", pwTitle: "Benutzer", pwSub: "Jeder hat eigene Chats. Neue Personen ändern das vorläufige Passwort bei der ersten Anmeldung.", pwNew: "Neues Passwort", save: "Speichern", saved: "Gespeichert", pwShort: "Mindestens 4 Zeichen", weak: "Es sind noch die einfachen Standardpasswörter gesetzt. Ändere sie, bevor du Lumelle für andere öffnest.", colName: "Name", colRole: "Rolle", colChats: "Chats", roleUser: "Benutzer", addBtn: "Hinzufügen", tempPw: "Vorläufiges Passwort", newPwPh: "neues Passwort", delUser: "Löschen", confirmUserDel: "{name} und alle Chats löschen? Das lässt sich nicht rückgängig machen.", errTaken: "Dieser Name ist schon vergeben", errBadName: "Name: bis zu 32 Buchstaben oder Ziffern, ohne Leerzeichen", added: "Hinzugefügt: {name}", mustTitle: "Wähle dein Passwort", mustSub: "Du hast ein vorläufiges Passwort. Lege dein eigenes fest, um weiterzumachen.", mustSave: "Speichern und weiter", say: "Vorlesen", sayStop: "Stopp", readAloud: "Antworten vorlesen", mic: "Sprechen", micStop: "Aufnahme beenden", transcribing: "Sprache wird erkannt…", sttSlow: "Das Spracherkennungsmodell wird zum ersten Mal geladen (~0,5 GB), das dauert ein paar Minuten…", micInsecure: "Das Mikrofon funktioniert nur auf diesem Computer (127.0.0.1) oder über eine sichere https-Adresse. Wie du sie bekommst, steht in der Anleitung im Abschnitt zum Handy.", micDenied: "Kein Zugriff auf das Mikrofon. Erlaube es in den Browser-Einstellungen und versuch es erneut.", sttMissing: "Die Spracherkennung ist nicht installiert. Starte Lumelle mit Internet neu, dann werden die Bibliotheken installiert.", sttFailed: "Sprache konnte nicht erkannt werden: ", sttEmpty: "Ich habe nichts verstanden. Versuch es näher am Mikrofon.",
     newChat: "+ Neuer Chat", newChatTitle: "Neuer Chat", send: "Senden", noChats: "Noch keine Chats",
     placeholder: "Nachricht eingeben…  (Enter zum Senden, Umschalt+Enter für neue Zeile)",
     think: "Vor dem Antworten nachdenken (langsamer, aber logischer)", offline: "Funktioniert offline",
@@ -762,7 +778,16 @@ function addMessage(role, content, scroll = true, images = []) {
   box.querySelector(".welcome")?.remove();
   const div = document.createElement("div");
   div.className = "msg " + role;
-  if (role === "assistant") div.innerHTML = renderMarkdown(content);
+  if (role === "assistant") {
+    div.innerHTML = renderMarkdown(content);
+    if ("speechSynthesis" in window && content) {
+      const b = document.createElement("button");
+      b.className = "say"; b.type = "button";
+      b.innerHTML = SAY_ICON + `<span>${t("say")}</span>`;
+      b.onclick = () => (tts.btn === b ? stopSpeaking() : speak(content, b));
+      div.appendChild(b);
+    }
+  }
   else {
     if (images.length) {
       const wrap = document.createElement("div");
@@ -851,7 +876,8 @@ async function send(text, images = []) {
       body: { text, images, think: $("think").checked, ui_lang: lang },
     });
     typing.remove();
-    addMessage("assistant", res.answer);
+    const answerDiv = addMessage("assistant", res.answer);
+    if ($("speakToggle").checked) speak(res.answer, answerDiv.querySelector(".say"));
     await loadChats();
     const fresh = state.chats.find((c) => c.id === state.current.id);
     if (fresh) { state.current.title = fresh.title; $("chatTitle").textContent = fresh.title; }
@@ -1189,6 +1215,136 @@ function updateTabTitle() {
   document.title = state.current && chat ? `${chat} — Lumelle AI` : "Lumelle AI";
 }
 new MutationObserver(updateTabTitle).observe($("chatTitle"), { childList: true, characterData: true, subtree: true });
+
+// ---------- голос: чтение вслух (голоса системы) ----------
+const SAY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const tts = { btn: null };
+try { $("speakToggle").checked = localStorage.getItem("lumelle-speak") === "1"; } catch (e) {}
+$("speakToggle").onchange = () => {
+  try { localStorage.setItem("lumelle-speak", $("speakToggle").checked ? "1" : "0"); } catch (e) {}
+  if (!$("speakToggle").checked) stopSpeaking();
+};
+function speechText(md) {
+  return md.replace(/```[\s\S]*?```/g, " ").replace(/`([^`]+)`/g, "$1").replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/^#{1,6}\s*/gm, "").replace(/^\s*[-*•]\s+/gm, "")
+    .replace(/\|/g, " ").replace(/[✅]/g, ". ").replace(/[❌]/g, ". ").replace(/[⬇🖼⭐]/gu, "").replace(/_{2,}/g, " … ");
+}
+function voiceLang(text) {
+  if (/[一-鿿]/.test(text)) return "zh";
+  if (/[а-яё]/i.test(text)) return "ru";
+  if (/[äöüß]/i.test(text)) return "de";
+  if (/[éèêàçùûœîï]/i.test(text)) return "fr";
+  return /[a-z]/i.test(text) ? "en" : lang;
+}
+function pickVoice(code) {
+  const voices = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith(code));
+  return voices.find((v) => v.localService && /premium|enhanced|milena|yuri|siri/i.test(v.name)) || voices.find((v) => v.localService) || voices[0] || null;
+}
+function setSayButton(b, on) {
+  if (!b) return;
+  b.classList.toggle("on", on);
+  b.querySelector("span").textContent = t(on ? "sayStop" : "say");
+}
+function stopSpeaking() {
+  speechSynthesis.cancel();
+  setSayButton(tts.btn, false);
+  tts.btn = null;
+}
+function speak(md, btn) {
+  if (!("speechSynthesis" in window)) return;
+  stopSpeaking();
+  // по предложениям: так длинный ответ не обрывается, а английские примеры читает английский голос
+  const parts = speechText(md).split(/(?<=[.!?。！？:;\n])\s+/).map((p) => p.trim()).filter((p) => /[\p{L}\p{N}]/u.test(p));
+  if (!parts.length) return;
+  tts.btn = btn || null;
+  setSayButton(tts.btn, true);
+  parts.forEach((part, i) => {
+    const u = new SpeechSynthesisUtterance(part);
+    const code = voiceLang(part);
+    const v = pickVoice(code);
+    if (v) u.voice = v;
+    u.lang = v ? v.lang : code;
+    u.rate = 1.0;
+    if (i === parts.length - 1) u.onend = () => { if (tts.btn === (btn || null)) { setSayButton(tts.btn, false); tts.btn = null; } };
+    speechSynthesis.speak(u);
+  });
+}
+if ("speechSynthesis" in window) speechSynthesis.getVoices(); // голоса подгружаются асинхронно
+else $("speakToggle").closest("label").hidden = true;
+
+// ---------- голос: распознавание (Whisper на компьютере) ----------
+const mic = { rec: null, stream: null, chunks: [], timer: null, started: 0 };
+function micError(text) { addMessage("error", text); }
+function setMicState(st) {
+  const b = $("micBtn");
+  b.classList.toggle("rec", st === "rec");
+  b.classList.toggle("busy", st === "busy");
+  b.title = t(st === "rec" ? "micStop" : "mic"); b.setAttribute("aria-label", b.title);
+  if (st !== "rec") $("recTime").textContent = "";
+}
+$("micBtn").onclick = async () => {
+  if (mic.rec) { mic.rec.stop(); return; }
+  if ($("micBtn").classList.contains("busy") || state.busy) return;
+  if (!window.isSecureContext || !navigator.mediaDevices || !window.MediaRecorder) { micError(t("micInsecure")); return; }
+  try { mic.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { micError(t("micDenied")); return; }
+  stopSpeaking();
+  const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find((x) => MediaRecorder.isTypeSupported(x)) || "";
+  mic.chunks = [];
+  mic.rec = new MediaRecorder(mic.stream, type ? { mimeType: type } : {});
+  mic.rec.ondataavailable = (e) => { if (e.data.size) mic.chunks.push(e.data); };
+  mic.rec.onstop = () => {
+    clearInterval(mic.timer);
+    mic.stream.getTracks().forEach((tr) => tr.stop());
+    const blob = new Blob(mic.chunks, { type: mic.rec.mimeType || type || "audio/webm" });
+    mic.rec = null;
+    transcribeAudio(blob);
+  };
+  mic.rec.start();
+  mic.started = Date.now();
+  setMicState("rec");
+  mic.timer = setInterval(() => {
+    const sec = Math.floor((Date.now() - mic.started) / 1000);
+    $("recTime").textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+    if (sec >= 120 && mic.rec) mic.rec.stop(); // не больше 2 минут за раз
+  }, 250);
+};
+async function transcribeAudio(blob) {
+  if (blob.size < 1000) { setMicState(""); micError(t("sttEmpty")); return; }
+  setMicState("busy");
+  const input = $("input");
+  const oldPh = input.placeholder;
+  input.placeholder = t("transcribing");
+  const slow = setTimeout(() => { input.placeholder = t("sttSlow"); }, 8000);
+  const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+  const fd = new FormData();
+  fd.append("audio", blob, "voice." + ext);
+  try {
+    const res = await fetch("/transcribe", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { showLogin(); return; }
+    if (!res.ok) {
+      const c = data.detail && data.detail.code;
+      micError(c === "stt_missing" ? t("sttMissing") : t("sttFailed") + ((data.detail && data.detail.error) || data.detail || res.status));
+      return;
+    }
+    const text = (data.text || "").trim();
+    if (!text) { micError(t("sttEmpty")); return; }
+    if ($("speakToggle").checked && !pending.length) {
+      send(text); // режим разговора: сказала → Lumelle отвечает вслух
+    } else {
+      input.value = (input.value ? input.value + " " : "") + text;
+      input.dispatchEvent(new Event("input"));
+      input.focus();
+    }
+  } catch (e) {
+    micError(t("sttFailed") + e.message);
+  } finally {
+    clearTimeout(slow);
+    input.placeholder = oldPh;
+    setMicState("");
+  }
+}
 
 // ---------- вход: admin и guest ----------
 let me = null;

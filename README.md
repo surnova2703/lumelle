@@ -14,6 +14,7 @@ Lumelle runs on Windows, macOS and Linux. It combines a local open-source langua
 - **Translate**: any language pair — name the target ("to Spanish: …"); by default Russian → English and everything else → Russian
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
+- **Voice**: 🎤 records your question and a local Whisper model (faster-whisper) turns it into text; 🔊 and “Read answers aloud” speak the answers with the system voices. With read-aloud on, Lumelle works as a voice conversation
 - **Accounts**: `admin` (owner) and `guest` out of the box; admin adds, resets and deletes users with the 👥 button. Everyone has their own chats, a new user replaces the temporary password at first sign-in, passwords are stored as PBKDF2 hashes, and 5 wrong attempts lock the login for 5 minutes
 - **Chat history**: chats are stored in a local SQLite database and survive restarts
 - **Context memory**: the model sees the last 20 messages of the current chat
@@ -42,7 +43,7 @@ The backend adds a system prompt and a temperature for the chat's mode (chat 0.4
 | Layer | Technology |
 |---|---|
 | Model | Qwen3 8B (text) and Qwen3-VL 8B (images) via [Ollama](https://ollama.com) |
-| Backend | Python, FastAPI, httpx, Uvicorn, python-pptx |
+| Backend | Python, FastAPI, httpx, Uvicorn, python-pptx, faster-whisper |
 | Storage | SQLite (Python standard library) |
 | Frontend | HTML, CSS, vanilla JavaScript (no frameworks, no build step) |
 
@@ -96,6 +97,7 @@ Phones and tablets (iPhone, Android) open Lumelle in the browser when the comput
 | `POST` | `/users/password` | Reset a user's password (admin only) |
 | `DELETE` | `/users/{name}` | Delete a user and their chats (admin only) |
 | `POST` | `/me/password` | Change your own password |
+| `POST` | `/transcribe` | Speech to text (multipart `audio`), local Whisper |
 | `POST` | `/ask` | One-off question, not saved: `{"mode": "chat", "text": "...", "think": false}` |
 | `POST` | `/chats` | Create a chat: `{"mode": "translate"}` |
 | `GET` | `/chats` | List chats |

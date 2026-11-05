@@ -14,7 +14,9 @@ if not exist ".venv\Scripts\python.exe" (
 )
 
 rem Libraries are installed once (internet needed only the first time).
-if not exist ".venv\.deps-ok" (
+copy /b /y requirements.txt+requirements-voice.txt ".venv\.deps-new" >nul
+fc /b ".venv\.deps-new" ".venv\.deps-ok" >nul 2>&1
+if errorlevel 1 (
     echo Installing libraries...
     ".venv\Scripts\python.exe" -m pip install --default-timeout=120 --retries 10 -r requirements.txt
     if errorlevel 1 (
@@ -22,7 +24,8 @@ if not exist ".venv\.deps-ok" (
         pause
         exit /b 1
     )
-    type nul > ".venv\.deps-ok"
+    ".venv\Scripts\python.exe" -m pip install --default-timeout=120 --retries 10 -r requirements-voice.txt || echo Voice input ^(Whisper^) was not installed. Everything else works.
+    copy /y ".venv\.deps-new" ".venv\.deps-ok" >nul
 )
 
 ".venv\Scripts\python.exe" run.py %*

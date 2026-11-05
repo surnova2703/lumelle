@@ -77,6 +77,15 @@ Add options to the start command: `start.bat --lan` on Windows or `./start.sh --
 
 While the default passwords are set, use `--lan` only on your home network or through Tailscale. In a café or a dorm, strangers could open your chats.
 
+## Voice
+
+- **🔊 Read aloud** under every answer and the **“Read answers aloud”** checkbox at the bottom. The system voices speak (on a Mac you can add more in System Settings → Accessibility → Spoken Content → System Voice → Manage Voices); no internet needed.
+- **🎤 Speak:** press, talk, press again. A Whisper model recognises the speech right on the computer. The first time it is downloaded (about 0.5 GB), which needs the internet. With “Read answers aloud” on, what you say is sent at once and Lumelle answers out loud, so it works as a conversation.
+- A smaller, faster model: `--whisper-model base`; a more accurate, slower one: `--whisper-model medium`.
+- **Microphone on a phone.** Browsers allow the microphone only on a secure (https) address. Tailscale can provide one: in its admin console (login.tailscale.com → DNS) turn on HTTPS Certificates, then run on the Mac
+  `/Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 8000`
+  and open the `https://your-mac.something.ts.net` address it prints on the phone. Reading aloud works without this.
+
 ## Troubleshooting
 
 | What you see | What to do |
