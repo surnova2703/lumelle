@@ -74,7 +74,9 @@ def main():
     check_ollama()
     import main  # noqa: E402  (creates the database and the admin / guest accounts)
     weak = main.using_default_passwords()
-    print("  Accounts: admin, guest" + (f"  (default passwords still set: {', '.join(weak)} — change them with the 🔑 button)" if weak else ""))
+    with main.db() as conn:
+        names = [r["name"] for r in conn.execute("SELECT name FROM users ORDER BY role = 'admin' DESC, name")]
+    print("  Accounts: " + ", ".join(names) + (f"  (default passwords still set: {', '.join(weak)} — change them with the 👥 button)" if weak else ""))
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     url = f"http://127.0.0.1:{args.port}"
     print(f"\n  Open: {url}")

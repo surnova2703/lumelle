@@ -56,7 +56,7 @@ The first start takes 1–3 minutes: the script creates a Python environment and
 
 Keep the text window open while you use Lumelle. To stop it, press `Ctrl + C` or just close the window.
 
-**Sign-in.** Lumelle has two accounts: `admin` (owner, password `admin`) and `guest` (password `guest`). Each has its own chats. The passwords are simple, so change them right away: sign in as admin and press 🔑 at the bottom of the sidebar.
+**Sign-in.** Lumelle has two accounts: `admin` (owner, password `admin`) and `guest` (password `guest`). Each has its own chats. The passwords are simple, so change them right away: sign in as admin and press 👥 at the bottom of the sidebar. There you can also add users: each gets their own chats and replaces the temporary password at first sign-in.
 
 | Option | What it does |
 | --- | --- |

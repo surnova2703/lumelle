@@ -139,7 +139,7 @@ if (BASE_DIR / "docs").is_dir():
 # ---------- аккаунты ----------
 
 # Два аккаунта: admin (владелец) и guest (гость). Пароли по умолчанию простые,
-# admin может сменить оба в интерфейсе (кнопка 🔑 внизу боковой панели).
+# admin может сменить оба в интерфейсе (кнопка 👥 внизу боковой панели).
 DEFAULT_PASSWORDS = {"admin": "admin", "guest": "guest"}
 SESSION_COOKIE = "lumelle_session"
 SESSION_DAYS = 30           # «Запомнить меня»
@@ -167,7 +167,7 @@ def current_user(request: Request) -> dict:
     if token:
         with db() as conn:
             row = conn.execute(
-                "SELECT u.name, u.role FROM sessions s JOIN users u ON u.name = s.user "
+                "SELECT u.name, u.role, u.must_change FROM sessions s JOIN users u ON u.name = s.user "
                 "WHERE s.token = ? AND s.expires > ?", (token, time.time())).fetchone()
         if row:
             return dict(row)
@@ -181,7 +181,13 @@ def admin_only(user: dict = Depends(current_user)) -> dict:
 
 
 def using_default_passwords():
-    return [n for n, pw in DEFAULT_PASSWORDS.items() if check_password(n, pw)]
+    return [n for n, pw in DEFAULT_PASSWORDS.items() if check_password(n, pw) and not must_change(n)]
+
+
+def must_change(name: str) -> bool:
+    with db() as conn:
+        r = conn.execute("SELECT must_change FROM users WHERE name = ?", (name,)).fetchone()
+    return bool(r and r["must_change"])
 
 
 # ---------- база данных (история чатов) ----------
@@ -234,10 +240,13 @@ def init_db():
         cols = [r["name"] for r in conn.execute("PRAGMA table_info(chats)")]
         if "owner" not in cols:
             conn.execute("ALTER TABLE chats ADD COLUMN owner TEXT NOT NULL DEFAULT 'admin'")
-        for name, role in (("admin", "admin"), ("guest", "guest")):
-            if not conn.execute("SELECT 1 FROM users WHERE name = ?", (name,)).fetchone():
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(users)")]
+        if "must_change" not in cols:  # 1 = временный пароль, сменить при входе
+            conn.execute("ALTER TABLE users ADD COLUMN must_change INTEGER NOT NULL DEFAULT 0")
+        if not conn.execute("SELECT 1 FROM users").fetchone():  # первый запуск
+            for name, role in (("admin", "admin"), ("guest", "guest")):
                 salt = secrets.token_hex(16)
-                conn.execute("INSERT INTO users VALUES (?, ?, ?, ?)",
+                conn.execute("INSERT INTO users (name, role, salt, pw_hash) VALUES (?, ?, ?, ?)",
                              (name, role, salt, hash_password(DEFAULT_PASSWORDS[name], salt)))
 
 
@@ -342,8 +351,28 @@ class LoginRequest(BaseModel):
 
 
 class PasswordChange(BaseModel):
-    name: Literal["admin", "guest"]
+    name: str
     password: str
+
+
+class OwnPassword(BaseModel):
+    password: str
+
+
+class NewUser(BaseModel):
+    name: str
+    password: str
+
+
+USERNAME_RE = re.compile(r"[\w.-]{1,32}")  # буквы любого языка, цифры, _ . -
+
+
+def set_password(conn, name: str, password: str, must_change: bool):
+    if len(password) < 4:
+        raise HTTPException(status_code=400, detail={"code": "short"})
+    salt = secrets.token_hex(16)
+    conn.execute("UPDATE users SET salt = ?, pw_hash = ?, must_change = ? WHERE name = ?",
+                 (salt, hash_password(password, salt), int(must_change), name))
 
 
 # ---------- эндпоинты ----------
@@ -381,7 +410,7 @@ def login(req: LoginRequest, request: Request, response: Response):
         conn.execute("INSERT INTO sessions VALUES (?, ?, ?)", (token, user["name"], time.time() + ttl))
     response.set_cookie(SESSION_COOKIE, token, max_age=ttl if req.remember else None,
                         httponly=True, samesite="lax")
-    return {"name": user["name"], "role": user["role"]}
+    return {"name": user["name"], "role": user["role"], "must_change": user.get("must_change", 0)}
 
 
 @app.post("/logout", summary="Выйти")
@@ -400,17 +429,60 @@ def me(user: dict = Depends(current_user)):
     return {**user, "default_passwords": weak}
 
 
-@app.post("/users/password", summary="Сменить пароль (только admin)")
-def change_password(req: PasswordChange, user: dict = Depends(admin_only)):
-    if len(req.password) < 4:
-        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
-    salt = secrets.token_hex(16)
+@app.post("/me/password", summary="Сменить свой пароль")
+def change_own_password(req: OwnPassword, user: dict = Depends(current_user)):
     with db() as conn:
-        conn.execute("UPDATE users SET salt = ?, pw_hash = ? WHERE name = ?",
-                     (salt, hash_password(req.password, salt), req.name))
+        set_password(conn, user["name"], req.password, must_change=False)
+    return {"ok": True}
+
+
+@app.get("/users", summary="Пользователи (только admin)")
+def list_users(user: dict = Depends(admin_only)):
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT u.name, u.role, u.must_change, (SELECT COUNT(*) FROM chats c WHERE c.owner = u.name) AS chats "
+            "FROM users u ORDER BY u.role = 'admin' DESC, u.name").fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/users", summary="Добавить пользователя (только admin)")
+def add_user(req: NewUser, user: dict = Depends(admin_only)):
+    name = req.name.strip().lower()
+    if not USERNAME_RE.fullmatch(name):
+        raise HTTPException(status_code=400, detail={"code": "bad_name"})
+    with db() as conn:
+        if conn.execute("SELECT 1 FROM users WHERE name = ?", (name,)).fetchone():
+            raise HTTPException(status_code=409, detail={"code": "taken"})
+        conn.execute("INSERT INTO users (name, role, salt, pw_hash) VALUES (?, 'user', '', '')", (name,))
+        set_password(conn, name, req.password, must_change=True)
+    return {"name": name}
+
+
+@app.post("/users/password", summary="Сбросить пароль пользователя (только admin)")
+def change_password(req: PasswordChange, user: dict = Depends(admin_only)):
+    with db() as conn:
+        if not conn.execute("SELECT 1 FROM users WHERE name = ?", (req.name,)).fetchone():
+            raise HTTPException(status_code=404, detail="User not found")
+        # чужой пароль = временный: человек сменит его при входе; свой — постоянный
+        set_password(conn, req.name, req.password, must_change=req.name != user["name"])
         if req.name != user["name"]:  # выкидываем того, кому сменили пароль
             conn.execute("DELETE FROM sessions WHERE user = ?", (req.name,))
     return {"ok": True}
+
+
+@app.delete("/users/{name}", summary="Удалить пользователя и его чаты (только admin)")
+def delete_user(name: str, user: dict = Depends(admin_only)):
+    with db() as conn:
+        u = conn.execute("SELECT role FROM users WHERE name = ?", (name,)).fetchone()
+        if not u:
+            raise HTTPException(status_code=404, detail="User not found")
+        if u["role"] == "admin":
+            raise HTTPException(status_code=400, detail="The admin account cannot be deleted")
+        conn.execute("DELETE FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE owner = ?)", (name,))
+        conn.execute("DELETE FROM chats WHERE owner = ?", (name,))
+        conn.execute("DELETE FROM sessions WHERE user = ?", (name,))
+        conn.execute("DELETE FROM users WHERE name = ?", (name,))
+    return {"deleted": name}
 
 
 @app.get("/decks/{name}", include_in_schema=False)
