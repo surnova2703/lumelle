@@ -28,8 +28,6 @@ MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "lumelle.db"
-if not DB_PATH.exists() and (BASE_DIR / "lumo.db").exists():
-    (BASE_DIR / "lumo.db").rename(DB_PATH)  # проект раньше назывался Lumo: переносим старые чаты
 DECKS_DIR = BASE_DIR / "generated"  # презентации, созданные в режиме Slides
 HISTORY_LIMIT = 20  # сколько последних сообщений модель «помнит» в чате
 

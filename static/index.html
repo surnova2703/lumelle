@@ -544,7 +544,7 @@ const STRINGS = {
 
 const LANG_NAMES = { ru: "Русский", en: "English", zh: "中文", fr: "Français", de: "Deutsch" };
 function detectLang() {
-  try { const saved = (localStorage.getItem("lumelle-lang") || localStorage.getItem("lumo-lang")); if (saved && STRINGS[saved]) return saved; } catch (e) {}
+  try { const saved = localStorage.getItem("lumelle-lang"); if (saved && STRINGS[saved]) return saved; } catch (e) {}
   const nav = (navigator.language || "en").toLowerCase().slice(0, 2);
   return STRINGS[nav] ? nav : "en";
 }
@@ -856,7 +856,7 @@ function setSidebar(open) {
     try { localStorage.setItem("lumelle-side", open ? "open" : "closed"); } catch (e) {}
   }
 }
-try { if ((localStorage.getItem("lumelle-side") || localStorage.getItem("lumo-side")) === "closed") document.body.classList.add("side-closed"); } catch (e) {}
+try { if (localStorage.getItem("lumelle-side") === "closed") document.body.classList.add("side-closed"); } catch (e) {}
 $("menuBtn").onclick = () => setSidebar(true);
 $("closeSide").onclick = () => setSidebar(false);
 $("scrim").onclick = () => setSidebar(false);
