@@ -17,17 +17,19 @@ from pydantic import BaseModel
 from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
 
 # Настройки можно поменять переменными окружения (удобно для слабых компьютеров):
-#   LUMO_MODEL=qwen3:4b  LUMO_VISION_MODEL=qwen3-vl:4b  OLLAMA_HOST=http://localhost:11434
+#   LUMELLE_MODEL=qwen3:4b  LUMELLE_VISION_MODEL=qwen3-vl:4b  OLLAMA_HOST=http://localhost:11434
 OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/") + "/api/chat"
-MODEL = os.environ.get("LUMO_MODEL", "qwen3:8b")                # модель для текста
-VISION_MODEL = os.environ.get("LUMO_VISION_MODEL", "qwen3-vl:8b")  # модель для картинок
+MODEL = os.environ.get("LUMELLE_MODEL", "qwen3:8b")                # модель для текста
+VISION_MODEL = os.environ.get("LUMELLE_VISION_MODEL", "qwen3-vl:8b")  # модель для картинок
 # Сколько модель остаётся в памяти после ответа (по умолчанию Ollama выгружает её через 5 минут,
 # и следующий ответ снова ждёт загрузку). "0" — выгружать сразу, если памяти мало.
-KEEP_ALIVE = os.environ.get("LUMO_KEEP_ALIVE", "30m")
+KEEP_ALIVE = os.environ.get("LUMELLE_KEEP_ALIVE", "30m")
 MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
 BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "lumo.db"
+DB_PATH = BASE_DIR / "lumelle.db"
+if not DB_PATH.exists() and (BASE_DIR / "lumo.db").exists():
+    (BASE_DIR / "lumo.db").rename(DB_PATH)  # проект раньше назывался Lumo: переносим старые чаты
 DECKS_DIR = BASE_DIR / "generated"  # презентации, созданные в режиме Slides
 HISTORY_LIMIT = 20  # сколько последних сообщений модель «помнит» в чате
 
@@ -36,7 +38,7 @@ Mode = Literal["chat", "write", "translate", "slides", "learn"]
 # Инструкции для каждого режима
 MODES = {
     "chat": (
-        "You are Lumo, a helpful offline assistant. "
+        "You are Lumelle, a helpful offline assistant. "
         "Reply in the same language as the user (any language), unless the user asks for another language. "
         "Start with a short direct answer, then explain step by step if needed. "
         "Be logical and precise. If you are not sure about a fact, say so instead of guessing. "
@@ -45,7 +47,7 @@ MODES = {
         "Use the earlier messages of this conversation as context."
     ),
     "write": (
-        "You are Lumo, a writing assistant. Write in the same language as the request, "
+        "You are Lumelle, a writing assistant. Write in the same language as the request, "
         "unless the user asks for the text in another language (for example 'write in German'). "
         "If an image is attached, use what is in it as the material for the text. "
         "Follow the requested format, length and tone exactly. "
@@ -62,7 +64,7 @@ MODES = {
         "you may add a short note with variants."
     ),
     "slides": (
-        "You are Lumo, a presentation designer. Turn the user's request into a slide outline. "
+        "You are Lumelle, a presentation designer. Turn the user's request into a slide outline. "
         "Write in the same language as the request (any language), unless the user asks for another language. "
         "Fill 'labels' in that same language: 'presentation' (the word 'Presentation'), 'thanks' ('Thank you for your attention!'), "
         "'questions' ('Any questions?'), 'download' ('Download the presentation'). Make 5-8 content slides unless the user asks for another number. "
@@ -74,7 +76,7 @@ MODES = {
         "return the whole updated presentation."
     ),
     "learn": (
-        "You are Lumo, a patient and friendly language tutor. By default the student is a Russian speaker learning English; "
+        "You are Lumelle, a patient and friendly language tutor. By default the student is a Russian speaker learning English; "
         "if the student names another language, teach that one. Explain rules and give feedback in the student's own language "
         "(the language they write to you in), and write examples and exercises in the language being learned.\n"
         "How to teach:\n"
@@ -112,7 +114,7 @@ def system_prompt(mode: str, ui_lang: Optional[str]) -> str:
 
 TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1, "slides": 0.5, "learn": 0.4}
 
-app = FastAPI(title="Lumo AI")
+app = FastAPI(title="Lumelle AI")
 
 
 @app.on_event("startup")
@@ -222,7 +224,7 @@ async def answer_for(mode: str, messages: List[dict], think: bool, ui_lang: Opti
         deck = clean_deck(json.loads(raw))
     except (ValueError, TypeError, AttributeError):
         raise HTTPException(status_code=502, detail="The model returned an invalid outline. Please try again.")
-    name = f"lumo_{int(time.time() * 1000)}.pptx"
+    name = f"lumelle_{int(time.time() * 1000)}.pptx"
     build_pptx(deck, DECKS_DIR / name)
     return outline_markdown(deck, f"/decks/{name}")
 
@@ -278,7 +280,7 @@ def install_guide(lang: str):
 
 @app.get("/decks/{name}", include_in_schema=False)
 def download_deck(name: str):
-    if not re.fullmatch(r"lumo_\d+\.pptx", name) or not (DECKS_DIR / name).is_file():
+    if not re.fullmatch(r"lumelle_\d+\.pptx", name) or not (DECKS_DIR / name).is_file():
         raise HTTPException(status_code=404, detail="Presentation not found")
     return FileResponse(
         DECKS_DIR / name,

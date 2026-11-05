@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lumo AI for macOS and Linux:  ./start.sh   (or: bash start.sh)
+# Lumelle AI for macOS and Linux:  ./start.sh   (or: bash start.sh)
 set -e
 cd "$(dirname "$0")"
 

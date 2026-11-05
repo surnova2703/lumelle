@@ -1,4 +1,4 @@
-"""Starts Lumo AI on Windows, macOS or Linux and opens it in the browser.
+"""Starts Lumelle AI on Windows, macOS or Linux and opens it in the browser.
 
 Usage:  python run.py              (only this computer)
         python run.py --lan        (also other devices on your Wi-Fi / Tailscale)
@@ -24,8 +24,8 @@ sys.path.insert(0, ROOT)
 
 def check_ollama():
     host = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
-    text_model = os.environ.get("LUMO_MODEL", "qwen3:8b")
-    vision_model = os.environ.get("LUMO_VISION_MODEL", "qwen3-vl:8b")
+    text_model = os.environ.get("LUMELLE_MODEL", "qwen3:8b")
+    vision_model = os.environ.get("LUMELLE_VISION_MODEL", "qwen3-vl:8b")
     try:
         tags = httpx.get(host + "/api/tags", timeout=3).json().get("models", [])
     except Exception:
@@ -55,7 +55,7 @@ def local_ip():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Lumo AI")
+    parser = argparse.ArgumentParser(description="Lumelle AI")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--lan", action="store_true", help="allow other devices in your network")
     parser.add_argument("--no-browser", action="store_true")
@@ -64,13 +64,13 @@ def main():
     parser.add_argument("--keep-alive", help="how long the model stays in memory, e.g. 30m, 2h or 0 (default 30m)")
     args = parser.parse_args()
     if args.model:
-        os.environ["LUMO_MODEL"] = args.model
+        os.environ["LUMELLE_MODEL"] = args.model
     if args.vision_model:
-        os.environ["LUMO_VISION_MODEL"] = args.vision_model
+        os.environ["LUMELLE_VISION_MODEL"] = args.vision_model
     if args.keep_alive:
-        os.environ["LUMO_KEEP_ALIVE"] = args.keep_alive
+        os.environ["LUMELLE_KEEP_ALIVE"] = args.keep_alive
 
-    print("Lumo AI")
+    print("Lumelle AI")
     check_ollama()
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     url = f"http://127.0.0.1:{args.port}"
@@ -79,7 +79,7 @@ def main():
         ip = local_ip()
         if ip:
             print(f"  From other devices: http://{ip}:{args.port}")
-        print("  Note: Lumo has no password yet — use --lan only in a network you trust.")
+        print("  Note: Lumelle has no password yet — use --lan only in a network you trust.")
     print("  Stop: Ctrl+C\n")
 
     if not args.no_browser:

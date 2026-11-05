@@ -148,7 +148,7 @@ def _shape(slide, kind, x, y, w, h, fill, line=None):
 
 
 def _glow(slide, cx, cy, r):
-    """Lumo's glowing orb (a PNG with soft edges); plain circles if the file is missing."""
+    """Lumelle's glowing orb (a PNG with soft edges); plain circles if the file is missing."""
     if ORB_PNG.is_file():
         slide.shapes.add_picture(str(ORB_PNG), Inches(cx - r), Inches(cy - r), Inches(2 * r), Inches(2 * r))
         return
@@ -172,7 +172,7 @@ def build_pptx(deck: dict, path: Path) -> Path:
     _text(s, 0.8, 2.3, 6.8, 2.4, deck["title"], 48, CREAM, bold=True, font=HEAD_FONT, anchor=MSO_ANCHOR.BOTTOM)
     if deck["subtitle"]:
         _text(s, 0.8, 4.9, 6.6, 1.0, deck["subtitle"], 22, SOFT)
-    _text(s, 0.8, 6.6, 6, 0.4, "Lumo AI", 14, SOFT)
+    _text(s, 0.8, 6.6, 6, 0.4, "Lumelle AI", 14, SOFT)
 
     # content slides
     for i, item in enumerate(deck["slides"], 1):

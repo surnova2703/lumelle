@@ -1,5 +1,5 @@
 @echo off
-rem Lumo AI for Windows: double-click to start.
+rem Lumelle AI for Windows: double-click to start.
 chcp 65001 >nul
 cd /d "%~dp0"
 
