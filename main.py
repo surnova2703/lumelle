@@ -1,4 +1,7 @@
 import asyncio
+import hashlib
+import hmac
+import secrets
 import json
 import os
 import re
@@ -9,7 +12,7 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -133,6 +136,54 @@ if (BASE_DIR / "docs").is_dir():
     app.mount("/presentations", StaticFiles(directory=BASE_DIR / "docs"), name="presentations")
 
 
+# ---------- аккаунты ----------
+
+# Два аккаунта: admin (владелец) и guest (гость). Пароли по умолчанию простые,
+# admin может сменить оба в интерфейсе (кнопка 🔑 внизу боковой панели).
+DEFAULT_PASSWORDS = {"admin": "admin", "guest": "guest"}
+SESSION_COOKIE = "lumelle_session"
+SESSION_DAYS = 30           # «Запомнить меня»
+SESSION_SHORT = 12 * 3600   # без галочки: 12 часов
+MAX_FAILS = 5               # неудачных попыток подряд с одного адреса…
+LOCK_SECONDS = 300          # …и вход закрывается на 5 минут
+_fails = {}                 # ip -> (сколько ошибок, до какого времени закрыто)
+
+
+def hash_password(password: str, salt: str) -> str:
+    """Пароль хранится только в виде хеша (PBKDF2), сам пароль нигде не записан."""
+    return hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 200_000).hex()
+
+
+def check_password(name: str, password: str):
+    with db() as conn:
+        u = conn.execute("SELECT * FROM users WHERE name = ?", (name,)).fetchone()
+    if u and hmac.compare_digest(hash_password(password, u["salt"]), u["pw_hash"]):
+        return dict(u)
+    return None
+
+
+def current_user(request: Request) -> dict:
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        with db() as conn:
+            row = conn.execute(
+                "SELECT u.name, u.role FROM sessions s JOIN users u ON u.name = s.user "
+                "WHERE s.token = ? AND s.expires > ?", (token, time.time())).fetchone()
+        if row:
+            return dict(row)
+    raise HTTPException(status_code=401, detail="Login required")
+
+
+def admin_only(user: dict = Depends(current_user)) -> dict:
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can do this")
+    return user
+
+
+def using_default_passwords():
+    return [n for n, pw in DEFAULT_PASSWORDS.items() if check_password(n, pw)]
+
+
 # ---------- база данных (история чатов) ----------
 
 def db():
@@ -164,6 +215,30 @@ def init_db():
         cols = [r["name"] for r in conn.execute("PRAGMA table_info(messages)")]
         if "images" not in cols:
             conn.execute("ALTER TABLE messages ADD COLUMN images TEXT")
+        # аккаунты: у каждого свои чаты; старые чаты (до появления входа) принадлежат admin
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                name TEXT PRIMARY KEY,
+                role TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                pw_hash TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+                expires REAL NOT NULL
+            );
+            """
+        )
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(chats)")]
+        if "owner" not in cols:
+            conn.execute("ALTER TABLE chats ADD COLUMN owner TEXT NOT NULL DEFAULT 'admin'")
+        for name, role in (("admin", "admin"), ("guest", "guest")):
+            if not conn.execute("SELECT 1 FROM users WHERE name = ?", (name,)).fetchone():
+                salt = secrets.token_hex(16)
+                conn.execute("INSERT INTO users VALUES (?, ?, ?, ?)",
+                             (name, role, salt, hash_password(DEFAULT_PASSWORDS[name], salt)))
 
 
 init_db()
@@ -173,8 +248,8 @@ def now():
     return datetime.now().isoformat(timespec="seconds")
 
 
-def get_chat_or_404(conn, chat_id: int):
-    chat = conn.execute("SELECT * FROM chats WHERE id = ?", (chat_id,)).fetchone()
+def get_chat_or_404(conn, chat_id: int, owner: str):
+    chat = conn.execute("SELECT * FROM chats WHERE id = ? AND owner = ?", (chat_id, owner)).fetchone()
     if chat is None:
         raise HTTPException(status_code=404, detail="Chat not found")
     return chat
@@ -260,6 +335,17 @@ class ChatUpdate(BaseModel):
     mode: Mode
 
 
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+    remember: bool = True
+
+
+class PasswordChange(BaseModel):
+    name: Literal["admin", "guest"]
+    password: str
+
+
 # ---------- эндпоинты ----------
 
 @app.get("/", include_in_schema=False)
@@ -276,8 +362,59 @@ def install_guide(lang: str):
     return FileResponse(BASE_DIR / files[lang], media_type="text/markdown; charset=utf-8")
 
 
+@app.post("/login", summary="Войти (admin или guest)")
+def login(req: LoginRequest, request: Request, response: Response):
+    ip = request.client.host if request.client else "?"
+    fails, locked_until = _fails.get(ip, (0, 0))
+    if locked_until > time.time():
+        raise HTTPException(status_code=429, detail={"code": "locked", "seconds": int(locked_until - time.time())})
+    user = check_password(req.name.strip().lower(), req.password)
+    if not user:
+        fails += 1
+        _fails[ip] = (0, time.time() + LOCK_SECONDS) if fails >= MAX_FAILS else (fails, 0)
+        raise HTTPException(status_code=401, detail={"code": "wrong", "left": max(MAX_FAILS - fails, 0)})
+    _fails.pop(ip, None)
+    token = secrets.token_urlsafe(32)
+    ttl = SESSION_DAYS * 86400 if req.remember else SESSION_SHORT
+    with db() as conn:
+        conn.execute("DELETE FROM sessions WHERE expires < ?", (time.time(),))
+        conn.execute("INSERT INTO sessions VALUES (?, ?, ?)", (token, user["name"], time.time() + ttl))
+    response.set_cookie(SESSION_COOKIE, token, max_age=ttl if req.remember else None,
+                        httponly=True, samesite="lax")
+    return {"name": user["name"], "role": user["role"]}
+
+
+@app.post("/logout", summary="Выйти")
+def logout(request: Request, response: Response):
+    token = request.cookies.get(SESSION_COOKIE)
+    if token:
+        with db() as conn:
+            conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+    response.delete_cookie(SESSION_COOKIE)
+    return {"ok": True}
+
+
+@app.get("/me", summary="Кто вошёл")
+def me(user: dict = Depends(current_user)):
+    weak = using_default_passwords() if user["role"] == "admin" else []
+    return {**user, "default_passwords": weak}
+
+
+@app.post("/users/password", summary="Сменить пароль (только admin)")
+def change_password(req: PasswordChange, user: dict = Depends(admin_only)):
+    if len(req.password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+    salt = secrets.token_hex(16)
+    with db() as conn:
+        conn.execute("UPDATE users SET salt = ?, pw_hash = ? WHERE name = ?",
+                     (salt, hash_password(req.password, salt), req.name))
+        if req.name != user["name"]:  # выкидываем того, кому сменили пароль
+            conn.execute("DELETE FROM sessions WHERE user = ?", (req.name,))
+    return {"ok": True}
+
+
 @app.get("/decks/{name}", include_in_schema=False)
-def download_deck(name: str):
+def download_deck(name: str, user: dict = Depends(current_user)):
     if not re.fullmatch(r"lumelle_\d+\.pptx", name) or not (DECKS_DIR / name).is_file():
         raise HTTPException(status_code=404, detail="Presentation not found")
     return FileResponse(
@@ -288,7 +425,7 @@ def download_deck(name: str):
 
 
 @app.post("/ask", summary="Быстрый вопрос без сохранения")
-async def ask(req: AskRequest):
+async def ask(req: AskRequest, user: dict = Depends(current_user)):
     check_images(req.images)
     msg = {"role": "user", "content": req.text}
     if req.images:
@@ -298,26 +435,26 @@ async def ask(req: AskRequest):
 
 
 @app.post("/chats", summary="Создать новый чат")
-def create_chat(req: NewChat):
+def create_chat(req: NewChat, user: dict = Depends(current_user)):
     with db() as conn:
         cur = conn.execute(
-            "INSERT INTO chats (title, mode, created_at) VALUES (?, ?, ?)",
-            ("New chat", req.mode, now()),
+            "INSERT INTO chats (title, mode, created_at, owner) VALUES (?, ?, ?, ?)",
+            ("New chat", req.mode, now(), user["name"]),
         )
         return {"id": cur.lastrowid, "mode": req.mode}
 
 
 @app.get("/chats", summary="Список чатов")
-def list_chats():
+def list_chats(user: dict = Depends(current_user)):
     with db() as conn:
-        rows = conn.execute("SELECT * FROM chats ORDER BY id DESC").fetchall()
+        rows = conn.execute("SELECT * FROM chats WHERE owner = ? ORDER BY id DESC", (user["name"],)).fetchall()
         return [dict(r) for r in rows]
 
 
 @app.get("/chats/{chat_id}", summary="Чат со всей историей")
-def get_chat(chat_id: int):
+def get_chat(chat_id: int, user: dict = Depends(current_user)):
     with db() as conn:
-        chat = get_chat_or_404(conn, chat_id)
+        chat = get_chat_or_404(conn, chat_id, user["name"])
         msgs = conn.execute(
             "SELECT role, content, images, created_at FROM messages WHERE chat_id = ? ORDER BY id",
             (chat_id,),
@@ -331,12 +468,12 @@ def get_chat(chat_id: int):
 
 
 @app.post("/chats/{chat_id}/ask", summary="Написать в чат (модель помнит контекст)")
-async def ask_in_chat(chat_id: int, req: ChatMessage):
+async def ask_in_chat(chat_id: int, req: ChatMessage, user: dict = Depends(current_user)):
     check_images(req.images)
     if not req.text.strip() and not req.images:
         raise HTTPException(status_code=400, detail="Empty message")
     with db() as conn:
-        chat = get_chat_or_404(conn, chat_id)
+        chat = get_chat_or_404(conn, chat_id, user["name"])
         history = conn.execute(
             "SELECT role, content, images FROM messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?",
             (chat_id, HISTORY_LIMIT),
@@ -376,17 +513,17 @@ async def ask_in_chat(chat_id: int, req: ChatMessage):
 
 
 @app.patch("/chats/{chat_id}", summary="Сменить режим чата")
-def update_chat(chat_id: int, req: ChatUpdate):
+def update_chat(chat_id: int, req: ChatUpdate, user: dict = Depends(current_user)):
     with db() as conn:
-        get_chat_or_404(conn, chat_id)
+        get_chat_or_404(conn, chat_id, user["name"])
         conn.execute("UPDATE chats SET mode = ? WHERE id = ?", (req.mode, chat_id))
     return {"id": chat_id, "mode": req.mode}
 
 
 @app.delete("/chats/{chat_id}", summary="Удалить чат")
-def delete_chat(chat_id: int):
+def delete_chat(chat_id: int, user: dict = Depends(current_user)):
     with db() as conn:
-        get_chat_or_404(conn, chat_id)
+        get_chat_or_404(conn, chat_id, user["name"])
         conn.execute("DELETE FROM messages WHERE chat_id = ?", (chat_id,))
         conn.execute("DELETE FROM chats WHERE id = ?", (chat_id,))
     return {"deleted": chat_id}

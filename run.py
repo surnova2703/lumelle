@@ -72,6 +72,9 @@ def main():
 
     print("Lumelle AI")
     check_ollama()
+    import main  # noqa: E402  (creates the database and the admin / guest accounts)
+    weak = main.using_default_passwords()
+    print("  Accounts: admin, guest" + (f"  (default passwords still set: {', '.join(weak)} — change them with the 🔑 button)" if weak else ""))
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     url = f"http://127.0.0.1:{args.port}"
     print(f"\n  Open: {url}")
@@ -79,7 +82,8 @@ def main():
         ip = local_ip()
         if ip:
             print(f"  From other devices: http://{ip}:{args.port}")
-        print("  Note: Lumelle has no password yet — use --lan only in a network you trust.")
+        if weak:
+            print("  Warning: simple default passwords — change them before other people use Lumelle.")
     print("  Stop: Ctrl+C\n")
 
     if not args.no_browser:

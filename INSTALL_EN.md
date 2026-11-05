@@ -56,6 +56,8 @@ The first start takes 1–3 minutes: the script creates a Python environment and
 
 Keep the text window open while you use Lumelle. To stop it, press `Ctrl + C` or just close the window.
 
+**Sign-in.** Lumelle has two accounts: `admin` (owner, password `admin`) and `guest` (password `guest`). Each has its own chats. The passwords are simple, so change them right away: sign in as admin and press 🔑 at the bottom of the sidebar.
+
 | Option | What it does |
 | --- | --- |
 | `--model qwen3:4b` | another text model |
@@ -73,7 +75,7 @@ Add options to the start command: `start.bat --lan` on Windows or `./start.sh --
 3. Open this address in the browser of a phone (iPhone or Android) connected to the same Wi‑Fi.
 4. Add the page to the home screen so Lumelle opens like an app.
 
-Lumelle has no password yet, so use `--lan` only on your home network or through Tailscale. In a café or a dorm, strangers could open your chats.
+While the default passwords are set, use `--lan` only on your home network or through Tailscale. In a café or a dorm, strangers could open your chats.
 
 ## Troubleshooting
 

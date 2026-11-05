@@ -14,6 +14,7 @@ Lumelle runs on Windows, macOS and Linux. It combines a local open-source langua
 - **Translate**: any language pair — name the target ("to Spanish: …"); by default Russian → English and everything else → Russian
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
+- **Two accounts**: `admin` (owner) and `guest`, each with their own chats; passwords are stored as PBKDF2 hashes, 5 wrong attempts lock the login for 5 minutes, and admin changes both passwords with the 🔑 button
 - **Chat history**: chats are stored in a local SQLite database and survive restarts
 - **Context memory**: the model sees the last 20 messages of the current chat
 - **Images**: attach a screenshot (📎, paste with Ctrl+V / Cmd+V or drag and drop), for example a test question, and Lumelle reads it with a local vision model
@@ -67,6 +68,8 @@ Lumelle runs on **Windows, macOS and Linux**. You need [Python 3.9+](https://www
 
 Step-by-step instructions for each system: **[Installation guide (English)](INSTALL_EN.md)** · **[Инструкция по установке (русский)](INSTALL_RU.md)**. The same guide opens inside Lumelle with the **Installation** button on the start screen.
 
+**First sign-in:** `admin` / `admin` (owner) or `guest` / `guest`. Change both passwords with the 🔑 button before other people use Lumelle.
+
 Options: `--model` picks the text model, `--keep-alive 0` frees memory right after each answer (by default the model stays loaded for 30 minutes and is preloaded at start, so answers come faster), `--lan` lets other devices in your network (or Tailscale) open Lumelle, `--port 9000` changes the port, `--no-browser` doesn't open the browser.
 
 ### Hardware
@@ -85,6 +88,10 @@ Phones and tablets (iPhone, Android) open Lumelle in the browser when the comput
 
 | Method | Endpoint | Description |
 |---|---|---|
+| `POST` | `/login` | Sign in: `{"name": "admin", "password": "...", "remember": true}` |
+| `POST` | `/logout` | Sign out |
+| `GET` | `/me` | Who is signed in |
+| `POST` | `/users/password` | Change a password (admin only) |
 | `POST` | `/ask` | One-off question, not saved: `{"mode": "chat", "text": "...", "think": false}` |
 | `POST` | `/chats` | Create a chat: `{"mode": "translate"}` |
 | `GET` | `/chats` | List chats |

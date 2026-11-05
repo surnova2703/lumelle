@@ -182,6 +182,48 @@
   .tech-link { display: inline; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
   .tech-link:hover { color: var(--ink); }
 
+  /* ---------- вход и аккаунты ---------- */
+  .login { position: fixed; inset: 0; z-index: 70; display: none; place-items: center; padding: 16px; overflow-y: auto;
+    background: radial-gradient(1200px 600px at 50% -10%, #22254A 0, #14162B 60%); }
+  body.need-login .login { display: grid; }
+  .login-card { width: min(380px, 100%); background: #FFFDF8; color: #14162B; border-radius: 20px; padding: 32px 28px 26px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.4); text-align: center; position: relative; }
+  .login-card .big-orb { width: 84px; height: 84px; margin: 0 auto 14px; border-radius: 50%;
+    background: radial-gradient(circle, #FFF4DD 0 22%, #F2B45A 50%, rgba(242,180,90,0) 72%); }
+  .login-card h1 { margin: 0; font-size: 24px; }
+  .login-card .sub { margin: 6px 0 22px; color: #6B6E85; font-size: 14px; }
+  .login-card .field { text-align: left; margin-bottom: 14px; }
+  .login-card label.f { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .login-card input[type=text], .login-card input[type=password] { width: 100%; padding: 12px 14px; border: 1px solid #E4DFD3; border-radius: 12px;
+    background: #F6F3EC; color: #14162B; font: inherit; font-size: 16px; outline: none; }
+  .login-card input:focus { border-color: #F2B45A; box-shadow: 0 0 0 3px rgba(242,180,90,.25); }
+  .login-card .pw { position: relative; }
+  .login-card .pw input { padding-right: 96px; }
+  .login-card .pw button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: #6B6E85; cursor: pointer; font: inherit; font-size: 13px; }
+  .login-card .remember { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6B6E85; margin: 4px 0 18px; text-align: left; cursor: pointer; }
+  .login-card .go { width: 100%; padding: 13px; border: 0; border-radius: 12px; background: #F2B45A; color: #14162B; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; }
+  .login-card .go:disabled { opacity: .6; }
+  .login-err { margin: -4px 0 14px; padding: 10px 12px; border-radius: 10px; background: #FBEBE6; color: #C2410C; font-size: 13px; text-align: left; }
+  .login-card .foot { margin-top: 18px; font-size: 12px; color: #6B6E85; display: flex; justify-content: center; gap: 6px; align-items: center; }
+  .login-card .foot svg { width: 14px; height: 14px; flex: none; }
+  .login-lang { position: fixed; top: calc(16px + env(safe-area-inset-top)); right: 16px; color: #9A9CB8; font-size: 13px;
+    border: 1px solid #22254A; border-radius: 8px; padding: 6px 10px; background: none; font-family: inherit; }
+  .login-lang option { color: #14162B; }
+  .me { margin: 8px 16px 0; padding: 8px 8px 8px 10px; border: 1px solid var(--side-hover); border-radius: 12px; display: flex; align-items: center; gap: 10px; }
+  .me[hidden] { display: none; }
+  .me .avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #14162B; font-weight: 700; flex: none; }
+  .me .who { flex: 1; min-width: 0; line-height: 1.2; }
+  .me .who b { display: block; font-size: 14px; }
+  .me .who span { font-size: 12px; color: var(--side-muted); }
+  .me button { border: 0; background: none; color: var(--side-muted); cursor: pointer; font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px; }
+  .me button:hover { background: var(--side-hover); color: var(--side-ink); }
+  .pw-row { display: grid; grid-template-columns: 70px minmax(0,1fr) auto; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .pw-row b { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; }
+  .pw-row input { min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; }
+  .pw-row button { padding: 10px 14px; border: 0; border-radius: 10px; background: var(--ink); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; }
+  .pw-msg { font-size: 13px; color: var(--muted); min-height: 18px; }
+  .weak { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: #FCEFD9; color: #8A4B0A; font-size: 13px; }
+
   /* ---------- инструкция по установке ---------- */
   .guide { position: fixed; inset: 0; z-index: 45; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(10,12,28,.55); }
   .guide.open { display: flex; }
@@ -323,6 +365,7 @@
   </div>
   <button class="new-chat" id="newChat" data-i18n="newChat"></button>
   <ul class="chat-list" id="chatList"></ul>
+  <div class="me" id="meBox" hidden><div class="avatar" id="meAvatar"></div><div class="who"><b id="meName"></b><span id="meRole"></span></div><button id="pwBtn" hidden data-i18n-title="pwBtn">🔑</button><button id="logoutBtn" data-i18n="logout"></button></div>
   <label class="lang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><select id="langSel" aria-label="Language"></select><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></label>
 </aside>
 <div class="scrim" id="scrim"></div>
@@ -349,6 +392,31 @@
       <button class="icon-btn" id="gClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="guide-body" id="gBody"></div>
+  </div>
+</div>
+<div class="login" id="login">
+  <select class="login-lang" id="loginLang" aria-label="Language"></select>
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <div class="big-orb"></div>
+    <h1>Lumelle</h1>
+    <p class="sub" data-i18n="loginSub"></p>
+    <div class="field"><label class="f" for="lgName" data-i18n="lName"></label><input type="text" id="lgName" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="admin / guest" required></div>
+    <div class="field"><label class="f" for="lgPass" data-i18n="lPass"></label><div class="pw"><input type="password" id="lgPass" autocomplete="current-password" required><button type="button" id="lgShow" data-i18n="show"></button></div></div>
+    <div class="login-err" id="lgErr" hidden></div>
+    <label class="remember"><input type="checkbox" id="lgRemember" checked> <span data-i18n="remember"></span></label>
+    <button class="go" id="lgGo" type="submit" data-i18n="loginBtn"></button>
+    <div class="foot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span data-i18n="loginFoot"></span></div>
+  </form>
+</div>
+<div class="chooser" id="pwDlg" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+  <div class="chooser-box" style="width:min(460px,100%)">
+    <button class="icon-btn close-x" id="pwClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="pwTitle" data-i18n="pwTitle"></h3>
+    <p data-i18n="pwSub"></p>
+    <div class="weak" id="pwWeak" hidden data-i18n="weak"></div>
+    <div class="pw-row"><b>admin</b><input type="password" data-pw="admin" autocomplete="new-password"><button data-save="admin" data-i18n="save"></button></div>
+    <div class="pw-row"><b>guest</b><input type="password" data-pw="guest" autocomplete="new-password"><button data-save="guest" data-i18n="save"></button></div>
+    <div class="pw-msg" id="pwMsg"></div>
   </div>
 </div>
 <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
@@ -411,6 +479,7 @@ const state = { chats: [], current: null, mode: "chat", busy: false };
 
 const STRINGS = {
   ru: {
+    loginSub: "Войди, чтобы открыть свои чаты", lName: "Имя", lPass: "Пароль", show: "Показать", hide: "Скрыть", remember: "Запомнить меня на этом устройстве", loginBtn: "Войти", loginFoot: "Всё хранится на компьютере владельца", wrong: "Неверное имя или пароль. Осталось попыток: {n}", locked: "Слишком много попыток. Попробуй через {m} мин.", logout: "Выйти", roleAdmin: "владелец", roleGuest: "гость", pwBtn: "Пароли", pwTitle: "Пароли", pwSub: "У admin и guest свои чаты. Когда меняешь пароль guest, все, кто вошёл как guest, выйдут.", pwNew: "Новый пароль", save: "Сохранить", saved: "Сохранено", pwShort: "Минимум 4 символа", weak: "Сейчас стоят простые пароли по умолчанию. Смени их, прежде чем открывать Lumelle другим людям.",
     newChat: "+ Новый чат", newChatTitle: "Новый чат", send: "Отправить", noChats: "Чатов пока нет",
     placeholder: "Напиши сообщение…  (Enter — отправить, Shift+Enter — новая строка)",
     think: "Думать перед ответом (дольше, но логичнее)", offline: "Работает офлайн",
@@ -437,6 +506,7 @@ const STRINGS = {
     ],
   },
   en: {
+    loginSub: "Sign in to open your chats", lName: "Name", lPass: "Password", show: "Show", hide: "Hide", remember: "Remember me on this device", loginBtn: "Sign in", loginFoot: "Everything stays on the owner’s computer", wrong: "Wrong name or password. Attempts left: {n}", locked: "Too many attempts. Try again in {m} min.", logout: "Sign out", roleAdmin: "owner", roleGuest: "guest", pwBtn: "Passwords", pwTitle: "Passwords", pwSub: "admin and guest have separate chats. Changing the guest password signs out everyone using guest.", pwNew: "New password", save: "Save", saved: "Saved", pwShort: "At least 4 characters", weak: "The simple default passwords are still set. Change them before you open Lumelle to other people.",
     newChat: "+ New chat", newChatTitle: "New chat", send: "Send", noChats: "No chats yet",
     placeholder: "Type a message…  (Enter to send, Shift+Enter for a new line)",
     think: "Think before answering (slower, but more logical)", offline: "Works offline",
@@ -463,6 +533,7 @@ const STRINGS = {
     ],
   },
   zh: {
+    loginSub: "登录以打开你的对话", lName: "用户名", lPass: "密码", show: "显示", hide: "隐藏", remember: "在此设备上记住我", loginBtn: "登录", loginFoot: "所有数据都保存在主人的电脑上", wrong: "用户名或密码错误。剩余尝试次数：{n}", locked: "尝试次数过多。请在 {m} 分钟后再试。", logout: "退出", roleAdmin: "主人", roleGuest: "访客", pwBtn: "密码", pwTitle: "密码", pwSub: "admin 和 guest 的对话彼此独立。修改 guest 密码后，所有以 guest 登录的人都会退出。", pwNew: "新密码", save: "保存", saved: "已保存", pwShort: "至少 4 个字符", weak: "目前仍是简单的默认密码。在让其他人使用 Lumelle 之前，请先修改密码。",
     newChat: "+ 新对话", newChatTitle: "新对话", send: "发送", noChats: "还没有对话",
     placeholder: "输入消息…（Enter 发送，Shift+Enter 换行）",
     think: "先思考再回答（更慢，但更有条理）", offline: "离线运行",
@@ -489,6 +560,7 @@ const STRINGS = {
     ],
   },
   fr: {
+    loginSub: "Connectez-vous pour ouvrir vos discussions", lName: "Nom", lPass: "Mot de passe", show: "Afficher", hide: "Masquer", remember: "Se souvenir de moi sur cet appareil", loginBtn: "Se connecter", loginFoot: "Tout reste sur l’ordinateur du propriétaire", wrong: "Nom ou mot de passe incorrect. Essais restants : {n}", locked: "Trop d’essais. Réessayez dans {m} min.", logout: "Se déconnecter", roleAdmin: "propriétaire", roleGuest: "invité", pwBtn: "Mots de passe", pwTitle: "Mots de passe", pwSub: "admin et guest ont des discussions séparées. Changer le mot de passe de guest déconnecte tous ceux qui l’utilisent.", pwNew: "Nouveau mot de passe", save: "Enregistrer", saved: "Enregistré", pwShort: "Au moins 4 caractères", weak: "Les mots de passe simples par défaut sont toujours actifs. Changez-les avant d’ouvrir Lumelle à d’autres personnes.",
     newChat: "+ Nouvelle discussion", newChatTitle: "Nouvelle discussion", send: "Envoyer", noChats: "Aucune discussion",
     placeholder: "Écrivez un message…  (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)",
     think: "Réfléchir avant de répondre (plus lent, mais plus logique)", offline: "Fonctionne hors ligne",
@@ -515,6 +587,7 @@ const STRINGS = {
     ],
   },
   de: {
+    loginSub: "Melde dich an, um deine Chats zu öffnen", lName: "Name", lPass: "Passwort", show: "Anzeigen", hide: "Verbergen", remember: "Auf diesem Gerät angemeldet bleiben", loginBtn: "Anmelden", loginFoot: "Alles bleibt auf dem Computer des Besitzers", wrong: "Falscher Name oder falsches Passwort. Verbleibende Versuche: {n}", locked: "Zu viele Versuche. Versuch es in {m} Min. erneut.", logout: "Abmelden", roleAdmin: "Besitzer", roleGuest: "Gast", pwBtn: "Passwörter", pwTitle: "Passwörter", pwSub: "admin und guest haben getrennte Chats. Wenn du das guest-Passwort änderst, werden alle guest-Nutzer abgemeldet.", pwNew: "Neues Passwort", save: "Speichern", saved: "Gespeichert", pwShort: "Mindestens 4 Zeichen", weak: "Es sind noch die einfachen Standardpasswörter gesetzt. Ändere sie, bevor du Lumelle für andere öffnest.",
     newChat: "+ Neuer Chat", newChatTitle: "Neuer Chat", send: "Senden", noChats: "Noch keine Chats",
     placeholder: "Nachricht eingeben…  (Enter zum Senden, Umschalt+Enter für neue Zeile)",
     think: "Vor dem Antworten nachdenken (langsamer, aber logischer)", offline: "Funktioniert offline",
@@ -559,6 +632,8 @@ function applyLang() {
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.dataset.i18nTitle); el.setAttribute("aria-label", el.title); });
   $("input").placeholder = window.matchMedia("(max-width: 760px)").matches ? t("placeholderShort") : t("placeholder");
   $("langSel").value = lang;
+  $("loginLang").value = lang;
+  if (typeof me !== "undefined" && me) $("meRole").textContent = t(me.role === "admin" ? "roleAdmin" : "roleGuest");
   if (!state.current) $("chatTitle").textContent = t("newChatTitle");
   const welcome = document.querySelector(".welcome");
   if (welcome) welcome.outerHTML = welcomeHtml();
@@ -573,7 +648,12 @@ async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.detail || `Ошибка ${res.status}`);
+  if (res.status === 401 && path !== "/login") { showLogin(); }
+  if (!res.ok) {
+    const err = new Error(typeof data.detail === "string" ? data.detail : `Ошибка ${res.status}`);
+    err.status = res.status; err.detail = data.detail;
+    throw err;
+  }
   return data;
 }
 
@@ -1078,10 +1158,77 @@ function updateTabTitle() {
 }
 new MutationObserver(updateTabTitle).observe($("chatTitle"), { childList: true, characterData: true, subtree: true });
 
+// ---------- вход: admin и guest ----------
+let me = null;
+function showLogin() {
+  me = null;
+  document.body.classList.add("need-login");
+  $("meBox").hidden = true;
+  $("lgErr").hidden = true;
+  setTimeout(() => $("lgName").focus(), 50);
+}
+function setUser(u) {
+  me = u;
+  document.body.classList.remove("need-login");
+  $("meBox").hidden = false;
+  $("meAvatar").textContent = u.name[0].toUpperCase();
+  $("meName").textContent = u.name;
+  $("meRole").textContent = t(u.role === "admin" ? "roleAdmin" : "roleGuest");
+  $("pwBtn").hidden = u.role !== "admin";
+}
+$("loginLang").innerHTML = $("langSel").innerHTML;
+$("loginLang").onchange = () => { $("langSel").value = $("loginLang").value; $("langSel").onchange(); };
+$("lgShow").onclick = () => {
+  const p = $("lgPass"); p.type = p.type === "password" ? "text" : "password";
+  $("lgShow").textContent = t(p.type === "password" ? "show" : "hide");
+};
+$("loginForm").onsubmit = async (e) => {
+  e.preventDefault();
+  $("lgGo").disabled = true; $("lgErr").hidden = true;
+  try {
+    const u = await api("/login", { method: "POST", body: { name: $("lgName").value, password: $("lgPass").value, remember: $("lgRemember").checked } });
+    $("lgPass").value = "";
+    setUser(u);
+    state.current = null;
+    await loadChats();
+    newChat();
+  } catch (err) {
+    const d = err.detail || {};
+    $("lgErr").textContent = d.code === "locked" ? t("locked").replace("{m}", Math.ceil(d.seconds / 60))
+      : d.code === "wrong" ? t("wrong").replace("{n}", d.left) : err.message;
+    $("lgErr").hidden = false;
+  } finally { $("lgGo").disabled = false; }
+};
+$("logoutBtn").onclick = async () => {
+  try { await api("/logout", { method: "POST" }); } catch (e) {}
+  state.chats = []; state.current = null; renderChatList(); newChat();
+  showLogin();
+};
+async function openPw() {
+  $("pwMsg").textContent = "";
+  document.querySelectorAll("[data-pw]").forEach((i) => (i.value = ""));
+  try { const u = await api("/me"); $("pwWeak").hidden = !(u.default_passwords || []).length; } catch (e) {}
+  $("pwDlg").classList.add("open");
+}
+$("pwBtn").onclick = openPw;
+$("pwClose").onclick = () => $("pwDlg").classList.remove("open");
+$("pwDlg").addEventListener("click", async (e) => {
+  if (e.target === $("pwDlg")) { $("pwDlg").classList.remove("open"); return; }
+  const b = e.target.closest("[data-save]"); if (!b) return;
+  const input = document.querySelector(`[data-pw="${b.dataset.save}"]`);
+  if (input.value.length < 4) { $("pwMsg").textContent = t("pwShort"); return; }
+  try {
+    await api("/users/password", { method: "POST", body: { name: b.dataset.save, password: input.value } });
+    input.value = ""; $("pwMsg").textContent = `${b.dataset.save}: ${t("saved")}`;
+    const u = await api("/me"); $("pwWeak").hidden = !(u.default_passwords || []).length;
+  } catch (err) { $("pwMsg").textContent = err.message; }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("pwDlg").classList.remove("open"); });
+
 // ---------- старт ----------
 applyLang();
-loadChats().catch(() => {});
 newChat();
+api("/me").then((u) => { setUser(u); return loadChats(); }).catch(() => {});
 </script>
 </body>
 </html>
