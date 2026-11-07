@@ -12,3 +12,4 @@ training/llama.cpp/
 training/.venv-train/
 training/*.gguf
 training/Modelfile
+training/my_docs/

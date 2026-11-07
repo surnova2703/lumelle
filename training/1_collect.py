@@ -146,6 +146,11 @@ def main():
 
     # 3) split into train / valid (the format MLX expects: {"messages": [...]})
     examples = [json.loads(l) for l in answers_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+    docs_file = data_dir / "docs.jsonl"  # examples from your own documents (0_import_docs.py)
+    if docs_file.exists():
+        from_docs = [json.loads(l) for l in docs_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+        print(f"Examples from your documents: {len(from_docs)}")
+        examples += from_docs
     random.Random(42).shuffle(examples)
     n_valid = max(1, int(len(examples) * args.valid)) if len(examples) > 10 else 1
     for name, part in (("valid", examples[:n_valid]), ("train", examples[n_valid:])):

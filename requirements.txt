@@ -3,3 +3,5 @@ uvicorn
 httpx
 python-pptx
 python-multipart
+python-docx
+pypdf

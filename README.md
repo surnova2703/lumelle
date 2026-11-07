@@ -14,6 +14,7 @@ Lumelle runs on Windows, macOS and Linux. It combines a local open-source langua
 - **Translate**: any language pair — name the target ("to Spanish: …"); by default Russian → English and everything else → Russian
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
+- **Documents**: upload .docx / .pdf / .txt / .md and turn on “From my documents”; Lumelle finds the relevant parts with offline keyword search (BM25, no extra model) and shows which file and part the answer comes from
 - **Model picker**: admin chooses which downloaded Ollama model answers (default `qwen3:8b`) and can switch back at any time
 - **Train your own model**: [`training/`](training/README.md) distils qwen3:8b into a small Qwen3‑1.7B with MLX LoRA on a Mac and adds it to Ollama as `lumelle-mini`
 - **Voice**: 🎤 records your question and a local Whisper model (faster-whisper) turns it into text; 🔊 and “Read answers aloud” speak the answers with the system voices. With read-aloud on, Lumelle works as a voice conversation
@@ -99,6 +100,9 @@ Phones and tablets (iPhone, Android) open Lumelle in the browser when the comput
 | `POST` | `/users/password` | Reset a user's password (admin only) |
 | `DELETE` | `/users/{name}` | Delete a user and their chats (admin only) |
 | `POST` | `/me/password` | Change your own password |
+| `GET` | `/documents` | My documents |
+| `POST` | `/documents` | Upload a document (multipart `file`) |
+| `DELETE` | `/documents/{id}` | Delete a document |
 | `GET` | `/models` | Downloaded models and the current one |
 | `POST` | `/models/current` | Choose the answering model (admin only) |
 | `POST` | `/transcribe` | Speech to text (multipart `audio`), local Whisper |
@@ -116,6 +120,7 @@ Phones and tablets (iPhone, Android) open Lumelle in the browser when the comput
 ```
 lumelle/
 ├── main.py            # FastAPI backend: modes, chat history, Ollama client
+├── docs_search.py     # documents: reading .docx/.pdf, fragments, offline search
 ├── slides.py          # Slides mode: builds .pptx files from the model's outline
 ├── run.py             # cross-platform launcher (checks Ollama, opens the browser)
 ├── start.bat / start.sh / start.command  # double-click starters
@@ -131,7 +136,6 @@ lumelle/
 - [ ] Streaming answers (word by word)
 - [ ] Desktop app for Windows, macOS and Linux (Tauri)
 - [ ] Model selection in the interface
-- [ ] Ask questions about your own documents (PDF, DOCX) with local RAG
 - [ ] Password protection for access from other devices
 
 ## Presentations

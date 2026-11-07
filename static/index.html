@@ -243,6 +243,24 @@
     .u-row button.del[disabled] { display: none; }
     .add-user { grid-template-columns: 1fr; }
   }
+  .docs-btn { display: flex; align-items: center; gap: 8px; margin: -4px 16px 10px; padding: 9px 12px; border: 1px solid var(--side-hover); border-radius: 10px;
+    background: none; color: var(--side-ink); font: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+  .docs-btn[hidden] { display: none; }
+  .docs-btn:hover { background: var(--side-hover); }
+  .docs-btn svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
+  .docs-count { margin-left: auto; font-size: 12px; color: var(--side-muted); }
+  .doc-list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+  .doc-list:empty { display: none; }
+  .doc-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .doc-row:first-child { border-top: 0; }
+  .doc-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-row .meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .doc-row button { border: 1px solid var(--line); background: none; color: #C2410C; border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .doc-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 14px; }
+  .doc-drop { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px; border: 2px dashed var(--line); border-radius: 14px; cursor: pointer; text-align: center; color: var(--muted); font-size: 13px; }
+  .doc-drop b { color: var(--ink); font-size: 15px; }
+  .doc-drop svg { width: 22px; height: 22px; color: var(--accent); }
+  .doc-drop.over, .doc-drop:hover { border-color: var(--accent); background: var(--bg); }
   .pw-msg { font-size: 13px; color: var(--muted); min-height: 18px; }
   .weak { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: #FCEFD9; color: #8A4B0A; font-size: 13px; }
 
@@ -357,6 +375,7 @@
   }
   .opt-right { display: flex; align-items: center; gap: 12px; }
   .model-pick { display: flex; align-items: center; gap: 6px; }
+  .model-pick:not([hidden]) + .offline { display: none; }
   .model-pick select { font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; max-width: 170px; }
   @media (max-width: 760px) { .options { flex-wrap: wrap; gap: 4px 12px; } .opt-right .offline { display: none; } }
   .opt-left { display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -406,6 +425,7 @@
     <button class="icon-btn" id="closeSide" data-i18n-title="closeSide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M15 10l-2 2 2 2"/></svg></button>
   </div>
   <button class="new-chat" id="newChat" data-i18n="newChat"></button>
+  <button class="docs-btn" id="docsBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg><span data-i18n="docsBtn"></span><span class="docs-count" id="docsCount"></span></button>
   <ul class="chat-list" id="chatList"></ul>
   <div class="me" id="meBox" hidden><div class="avatar" id="meAvatar"></div><div class="who"><b id="meName"></b><span id="meRole"></span></div><button id="pwBtn" hidden data-i18n-title="pwBtn">👥</button><button id="logoutBtn" data-i18n="logout"></button></div>
   <label class="lang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><select id="langSel" aria-label="Language"></select><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></label>
@@ -470,6 +490,16 @@
     <button class="must-go" data-i18n="mustSave"></button>
   </form>
 </div>
+<div class="chooser" id="docsDlg" role="dialog" aria-modal="true" aria-labelledby="docsTitle">
+  <div class="chooser-box docs-box" style="width:min(560px,100%);max-height:90dvh;overflow-y:auto">
+    <button class="icon-btn close-x" id="docsClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="docsTitle" data-i18n="docsTitle"></h3>
+    <p data-i18n="docsSub"></p>
+    <div class="doc-list" id="docList"></div>
+    <label class="doc-drop" id="docDrop"><input type="file" id="docFile" accept=".docx,.pdf,.txt,.md,.csv" multiple hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg><b data-i18n="docsUpload"></b><span data-i18n="docsTypes"></span></label>
+    <div class="pw-msg" id="docMsg"></div>
+  </div>
+</div>
 <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
   <div class="chooser-box">
     <button class="icon-btn close-x" id="chClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -519,7 +549,7 @@
       <button class="send" id="send" type="submit"><span class="send-label" data-i18n="send"></span><svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
     <div class="options">
-      <span class="opt-left"><label><input type="checkbox" id="think"> <span data-i18n="think"></span></label><label><input type="checkbox" id="speakToggle"> <span data-i18n="readAloud"></span></label></span>
+      <span class="opt-left"><label><input type="checkbox" id="think"> <span data-i18n="think"></span></label><label id="useDocsLbl" hidden><input type="checkbox" id="useDocs"> <span data-i18n="useDocs"></span></label><label><input type="checkbox" id="speakToggle"> <span data-i18n="readAloud"></span></label></span>
       <span class="opt-right"><label class="model-pick" id="modelPick" hidden><span data-i18n="modelLabel"></span> <select id="modelSel"></select></label><span class="offline" data-i18n="offline"></span></span>
     </div>
   </div>
@@ -531,7 +561,7 @@ const state = { chats: [], current: null, mode: "chat", busy: false };
 
 const STRINGS = {
   ru: {
-    loginSub: "Войди, чтобы открыть свои чаты", lName: "Имя", lPass: "Пароль", show: "Показать", hide: "Скрыть", remember: "Запомнить меня на этом устройстве", loginBtn: "Войти", loginFoot: "Всё хранится на компьютере владельца", wrong: "Неверное имя или пароль. Осталось попыток: {n}", locked: "Слишком много попыток. Попробуй через {m} мин.", logout: "Выйти", roleAdmin: "владелец", roleGuest: "гость", pwBtn: "Пользователи", pwTitle: "Пользователи", pwSub: "У каждого свои чаты. Новый человек при первом входе сам сменит временный пароль.", pwNew: "Новый пароль", save: "Сохранить", saved: "Сохранено", pwShort: "Минимум 4 символа", weak: "Сейчас стоят простые пароли по умолчанию. Смени их, прежде чем открывать Lumelle другим людям.", colName: "Имя", colRole: "Роль", colChats: "Чатов", roleUser: "пользователь", addBtn: "Добавить", tempPw: "Временный пароль", newPwPh: "новый пароль", delUser: "Удалить", confirmUserDel: "Удалить {name} и все его чаты? Это нельзя отменить.", errTaken: "Такое имя уже есть", errBadName: "Имя: до 32 букв или цифр, без пробелов", added: "Добавлен: {name}", mustTitle: "Придумай свой пароль", mustSub: "Сейчас у тебя временный пароль. Задай свой, чтобы продолжить.", mustSave: "Сохранить и продолжить", say: "Прочитать вслух", sayStop: "Остановить", readAloud: "Читать ответы вслух", mic: "Сказать голосом", micStop: "Остановить запись", transcribing: "Распознаю речь…", sttSlow: "Первый раз скачивается модель распознавания (~0,5 ГБ), это займёт пару минут…", micInsecure: "Микрофон работает только на этом компьютере (127.0.0.1) или по защищённому адресу https. Как его получить — в инструкции, раздел про телефон.", micDenied: "Нет доступа к микрофону. Разреши его в настройках браузера и попробуй ещё раз.", sttMissing: "Распознавание речи не установлено. Перезапусти Lumelle с интернетом — он доустановит нужные библиотеки.", sttFailed: "Не получилось распознать речь: ", sttEmpty: "Ничего не расслышал. Попробуй ещё раз, поближе к микрофону.", modelLabel: "Модель", modelDefault: "по умолчанию", modelSwitched: "Модель переключена: {name}",
+    loginSub: "Войди, чтобы открыть свои чаты", lName: "Имя", lPass: "Пароль", show: "Показать", hide: "Скрыть", remember: "Запомнить меня на этом устройстве", loginBtn: "Войти", loginFoot: "Всё хранится на компьютере владельца", wrong: "Неверное имя или пароль. Осталось попыток: {n}", locked: "Слишком много попыток. Попробуй через {m} мин.", logout: "Выйти", roleAdmin: "владелец", roleGuest: "гость", pwBtn: "Пользователи", pwTitle: "Пользователи", pwSub: "У каждого свои чаты. Новый человек при первом входе сам сменит временный пароль.", pwNew: "Новый пароль", save: "Сохранить", saved: "Сохранено", pwShort: "Минимум 4 символа", weak: "Сейчас стоят простые пароли по умолчанию. Смени их, прежде чем открывать Lumelle другим людям.", colName: "Имя", colRole: "Роль", colChats: "Чатов", roleUser: "пользователь", addBtn: "Добавить", tempPw: "Временный пароль", newPwPh: "новый пароль", delUser: "Удалить", confirmUserDel: "Удалить {name} и все его чаты? Это нельзя отменить.", errTaken: "Такое имя уже есть", errBadName: "Имя: до 32 букв или цифр, без пробелов", added: "Добавлен: {name}", mustTitle: "Придумай свой пароль", mustSub: "Сейчас у тебя временный пароль. Задай свой, чтобы продолжить.", mustSave: "Сохранить и продолжить", say: "Прочитать вслух", sayStop: "Остановить", readAloud: "Читать ответы вслух", mic: "Сказать голосом", micStop: "Остановить запись", transcribing: "Распознаю речь…", sttSlow: "Первый раз скачивается модель распознавания (~0,5 ГБ), это займёт пару минут…", micInsecure: "Микрофон работает только на этом компьютере (127.0.0.1) или по защищённому адресу https. Как его получить — в инструкции, раздел про телефон.", micDenied: "Нет доступа к микрофону. Разреши его в настройках браузера и попробуй ещё раз.", sttMissing: "Распознавание речи не установлено. Перезапусти Lumelle с интернетом — он доустановит нужные библиотеки.", sttFailed: "Не получилось распознать речь: ", sttEmpty: "Ничего не расслышал. Попробуй ещё раз, поближе к микрофону.", modelLabel: "Модель", modelDefault: "по умолчанию", modelSwitched: "Модель переключена: {name}", docsBtn: "Документы", docsTitle: "Мои документы", docsSub: "Загрузи конспекты, лекции или ответы к тестам. Включи внизу «По моим документам» — и Lumelle будет отвечать по ним и показывать, откуда взят ответ. Файлы видишь только ты.", docsUpload: "Загрузить файл", docsTypes: ".docx, .pdf, .txt, .md — до 15 МБ. Можно перетащить сюда.", docsEmpty: "Пока нет документов", docsParts: "фрагментов: {n}", useDocs: "По моим документам", docUploaded: "Загружен: {name}", docConfirmDel: "Удалить «{name}»?", docErrType: "Такой формат не поддерживается: нужен .docx, .pdf, .txt или .md", docErrBig: "Файл больше 15 МБ", docErrRead: "Не получилось прочитать файл. Если это скан PDF, в нём нет текста — нужен файл с текстом.", docErrEmpty: "В файле не нашлось текста", docUploading: "Загружаю…",
     newChat: "+ Новый чат", newChatTitle: "Новый чат", send: "Отправить", noChats: "Чатов пока нет",
     placeholder: "Напиши сообщение…  (Enter — отправить, Shift+Enter — новая строка)",
     think: "Думать перед ответом (дольше, но логичнее)", offline: "Работает офлайн",
@@ -558,7 +588,7 @@ const STRINGS = {
     ],
   },
   en: {
-    loginSub: "Sign in to open your chats", lName: "Name", lPass: "Password", show: "Show", hide: "Hide", remember: "Remember me on this device", loginBtn: "Sign in", loginFoot: "Everything stays on the owner’s computer", wrong: "Wrong name or password. Attempts left: {n}", locked: "Too many attempts. Try again in {m} min.", logout: "Sign out", roleAdmin: "owner", roleGuest: "guest", pwBtn: "Users", pwTitle: "Users", pwSub: "Everyone has their own chats. A new person changes the temporary password at first sign-in.", pwNew: "New password", save: "Save", saved: "Saved", pwShort: "At least 4 characters", weak: "The simple default passwords are still set. Change them before you open Lumelle to other people.", colName: "Name", colRole: "Role", colChats: "Chats", roleUser: "user", addBtn: "Add", tempPw: "Temporary password", newPwPh: "new password", delUser: "Delete", confirmUserDel: "Delete {name} and all their chats? This can’t be undone.", errTaken: "This name is already taken", errBadName: "Name: up to 32 letters or digits, no spaces", added: "Added: {name}", mustTitle: "Choose your password", mustSub: "You have a temporary password. Set your own to continue.", mustSave: "Save and continue", say: "Read aloud", sayStop: "Stop", readAloud: "Read answers aloud", mic: "Speak", micStop: "Stop recording", transcribing: "Recognising speech…", sttSlow: "The speech model is being downloaded for the first time (~0.5 GB), this takes a couple of minutes…", micInsecure: "The microphone works only on this computer (127.0.0.1) or over a secure https address. The guide explains how to get one, in the phone section.", micDenied: "No access to the microphone. Allow it in the browser settings and try again.", sttMissing: "Speech recognition is not installed. Restart Lumelle with internet access and it will install the libraries.", sttFailed: "Couldn’t recognise speech: ", sttEmpty: "I didn’t catch anything. Try again a bit closer to the microphone.", modelLabel: "Model", modelDefault: "default", modelSwitched: "Model switched: {name}",
+    loginSub: "Sign in to open your chats", lName: "Name", lPass: "Password", show: "Show", hide: "Hide", remember: "Remember me on this device", loginBtn: "Sign in", loginFoot: "Everything stays on the owner’s computer", wrong: "Wrong name or password. Attempts left: {n}", locked: "Too many attempts. Try again in {m} min.", logout: "Sign out", roleAdmin: "owner", roleGuest: "guest", pwBtn: "Users", pwTitle: "Users", pwSub: "Everyone has their own chats. A new person changes the temporary password at first sign-in.", pwNew: "New password", save: "Save", saved: "Saved", pwShort: "At least 4 characters", weak: "The simple default passwords are still set. Change them before you open Lumelle to other people.", colName: "Name", colRole: "Role", colChats: "Chats", roleUser: "user", addBtn: "Add", tempPw: "Temporary password", newPwPh: "new password", delUser: "Delete", confirmUserDel: "Delete {name} and all their chats? This can’t be undone.", errTaken: "This name is already taken", errBadName: "Name: up to 32 letters or digits, no spaces", added: "Added: {name}", mustTitle: "Choose your password", mustSub: "You have a temporary password. Set your own to continue.", mustSave: "Save and continue", say: "Read aloud", sayStop: "Stop", readAloud: "Read answers aloud", mic: "Speak", micStop: "Stop recording", transcribing: "Recognising speech…", sttSlow: "The speech model is being downloaded for the first time (~0.5 GB), this takes a couple of minutes…", micInsecure: "The microphone works only on this computer (127.0.0.1) or over a secure https address. The guide explains how to get one, in the phone section.", micDenied: "No access to the microphone. Allow it in the browser settings and try again.", sttMissing: "Speech recognition is not installed. Restart Lumelle with internet access and it will install the libraries.", sttFailed: "Couldn’t recognise speech: ", sttEmpty: "I didn’t catch anything. Try again a bit closer to the microphone.", modelLabel: "Model", modelDefault: "default", modelSwitched: "Model switched: {name}", docsBtn: "Documents", docsTitle: "My documents", docsSub: "Upload notes, lectures or test answers. Turn on “From my documents” at the bottom and Lumelle answers from them and shows where the answer comes from. Only you see your files.", docsUpload: "Upload a file", docsTypes: ".docx, .pdf, .txt, .md — up to 15 MB. You can drop files here.", docsEmpty: "No documents yet", docsParts: "parts: {n}", useDocs: "From my documents", docUploaded: "Uploaded: {name}", docConfirmDel: "Delete “{name}”?", docErrType: "This format is not supported: use .docx, .pdf, .txt or .md", docErrBig: "The file is larger than 15 MB", docErrRead: "Couldn’t read the file. A scanned PDF has no text in it — a file with text is needed.", docErrEmpty: "No text found in the file", docUploading: "Uploading…",
     newChat: "+ New chat", newChatTitle: "New chat", send: "Send", noChats: "No chats yet",
     placeholder: "Type a message…  (Enter to send, Shift+Enter for a new line)",
     think: "Think before answering (slower, but more logical)", offline: "Works offline",
@@ -585,7 +615,7 @@ const STRINGS = {
     ],
   },
   zh: {
-    loginSub: "登录以打开你的对话", lName: "用户名", lPass: "密码", show: "显示", hide: "隐藏", remember: "在此设备上记住我", loginBtn: "登录", loginFoot: "所有数据都保存在主人的电脑上", wrong: "用户名或密码错误。剩余尝试次数：{n}", locked: "尝试次数过多。请在 {m} 分钟后再试。", logout: "退出", roleAdmin: "主人", roleGuest: "访客", pwBtn: "用户", pwTitle: "用户", pwSub: "每个人都有自己的对话。新用户首次登录时会自己修改临时密码。", pwNew: "新密码", save: "保存", saved: "已保存", pwShort: "至少 4 个字符", weak: "目前仍是简单的默认密码。在让其他人使用 Lumelle 之前，请先修改密码。", colName: "用户名", colRole: "角色", colChats: "对话", roleUser: "用户", addBtn: "添加", tempPw: "临时密码", newPwPh: "新密码", delUser: "删除", confirmUserDel: "删除 {name} 及其所有对话？此操作无法撤销。", errTaken: "该用户名已存在", errBadName: "用户名：最多 32 个字母或数字，不含空格", added: "已添加：{name}", mustTitle: "设置你的密码", mustSub: "你现在使用的是临时密码。请设置自己的密码后继续。", mustSave: "保存并继续", say: "朗读", sayStop: "停止", readAloud: "朗读回答", mic: "语音输入", micStop: "停止录音", transcribing: "正在识别语音…", sttSlow: "首次使用需要下载语音识别模型（约 0.5 GB），需要几分钟…", micInsecure: "麦克风只能在本机（127.0.0.1）或安全的 https 地址上使用。获取方法见安装说明中的手机部分。", micDenied: "无法访问麦克风。请在浏览器设置中允许后重试。", sttMissing: "尚未安装语音识别。请联网重启 Lumelle，它会自动安装所需的库。", sttFailed: "语音识别失败：", sttEmpty: "没有听清。请靠近麦克风再试一次。", modelLabel: "模型", modelDefault: "默认", modelSwitched: "已切换模型：{name}",
+    loginSub: "登录以打开你的对话", lName: "用户名", lPass: "密码", show: "显示", hide: "隐藏", remember: "在此设备上记住我", loginBtn: "登录", loginFoot: "所有数据都保存在主人的电脑上", wrong: "用户名或密码错误。剩余尝试次数：{n}", locked: "尝试次数过多。请在 {m} 分钟后再试。", logout: "退出", roleAdmin: "主人", roleGuest: "访客", pwBtn: "用户", pwTitle: "用户", pwSub: "每个人都有自己的对话。新用户首次登录时会自己修改临时密码。", pwNew: "新密码", save: "保存", saved: "已保存", pwShort: "至少 4 个字符", weak: "目前仍是简单的默认密码。在让其他人使用 Lumelle 之前，请先修改密码。", colName: "用户名", colRole: "角色", colChats: "对话", roleUser: "用户", addBtn: "添加", tempPw: "临时密码", newPwPh: "新密码", delUser: "删除", confirmUserDel: "删除 {name} 及其所有对话？此操作无法撤销。", errTaken: "该用户名已存在", errBadName: "用户名：最多 32 个字母或数字，不含空格", added: "已添加：{name}", mustTitle: "设置你的密码", mustSub: "你现在使用的是临时密码。请设置自己的密码后继续。", mustSave: "保存并继续", say: "朗读", sayStop: "停止", readAloud: "朗读回答", mic: "语音输入", micStop: "停止录音", transcribing: "正在识别语音…", sttSlow: "首次使用需要下载语音识别模型（约 0.5 GB），需要几分钟…", micInsecure: "麦克风只能在本机（127.0.0.1）或安全的 https 地址上使用。获取方法见安装说明中的手机部分。", micDenied: "无法访问麦克风。请在浏览器设置中允许后重试。", sttMissing: "尚未安装语音识别。请联网重启 Lumelle，它会自动安装所需的库。", sttFailed: "语音识别失败：", sttEmpty: "没有听清。请靠近麦克风再试一次。", modelLabel: "模型", modelDefault: "默认", modelSwitched: "已切换模型：{name}", docsBtn: "文档", docsTitle: "我的文档", docsSub: "上传笔记、讲义或测试答案。在下方开启“根据我的文档”，Lumelle 就会依据它们回答，并注明出处。只有你能看到这些文件。", docsUpload: "上传文件", docsTypes: ".docx、.pdf、.txt、.md，最大 15 MB。也可以拖到这里。", docsEmpty: "还没有文档", docsParts: "片段：{n}", useDocs: "根据我的文档", docUploaded: "已上传：{name}", docConfirmDel: "删除“{name}”？", docErrType: "不支持此格式：请使用 .docx、.pdf、.txt 或 .md", docErrBig: "文件超过 15 MB", docErrRead: "无法读取文件。扫描版 PDF 中没有文字，需要包含文字的文件。", docErrEmpty: "文件中没有找到文字", docUploading: "正在上传…",
     newChat: "+ 新对话", newChatTitle: "新对话", send: "发送", noChats: "还没有对话",
     placeholder: "输入消息…（Enter 发送，Shift+Enter 换行）",
     think: "先思考再回答（更慢，但更有条理）", offline: "离线运行",
@@ -612,7 +642,7 @@ const STRINGS = {
     ],
   },
   fr: {
-    loginSub: "Connectez-vous pour ouvrir vos discussions", lName: "Nom", lPass: "Mot de passe", show: "Afficher", hide: "Masquer", remember: "Se souvenir de moi sur cet appareil", loginBtn: "Se connecter", loginFoot: "Tout reste sur l’ordinateur du propriétaire", wrong: "Nom ou mot de passe incorrect. Essais restants : {n}", locked: "Trop d’essais. Réessayez dans {m} min.", logout: "Se déconnecter", roleAdmin: "propriétaire", roleGuest: "invité", pwBtn: "Utilisateurs", pwTitle: "Utilisateurs", pwSub: "Chacun a ses propres discussions. Une nouvelle personne change le mot de passe temporaire à sa première connexion.", pwNew: "Nouveau mot de passe", save: "Enregistrer", saved: "Enregistré", pwShort: "Au moins 4 caractères", weak: "Les mots de passe simples par défaut sont toujours actifs. Changez-les avant d’ouvrir Lumelle à d’autres personnes.", colName: "Nom", colRole: "Rôle", colChats: "Discussions", roleUser: "utilisateur", addBtn: "Ajouter", tempPw: "Mot de passe temporaire", newPwPh: "nouveau mot de passe", delUser: "Supprimer", confirmUserDel: "Supprimer {name} et toutes ses discussions ? C’est définitif.", errTaken: "Ce nom est déjà pris", errBadName: "Nom : 32 lettres ou chiffres maximum, sans espaces", added: "Ajouté : {name}", mustTitle: "Choisissez votre mot de passe", mustSub: "Vous avez un mot de passe temporaire. Définissez le vôtre pour continuer.", mustSave: "Enregistrer et continuer", say: "Lire à voix haute", sayStop: "Arrêter", readAloud: "Lire les réponses à voix haute", mic: "Parler", micStop: "Arrêter l’enregistrement", transcribing: "Reconnaissance de la parole…", sttSlow: "Le modèle de reconnaissance se télécharge pour la première fois (~0,5 Go), cela prend quelques minutes…", micInsecure: "Le micro ne fonctionne que sur cet ordinateur (127.0.0.1) ou via une adresse https sécurisée. Le guide explique comment l’obtenir, section téléphone.", micDenied: "Pas d’accès au micro. Autorisez-le dans les réglages du navigateur et réessayez.", sttMissing: "La reconnaissance vocale n’est pas installée. Relancez Lumelle avec internet : il installera les bibliothèques.", sttFailed: "Impossible de reconnaître la parole : ", sttEmpty: "Je n’ai rien entendu. Réessayez plus près du micro.", modelLabel: "Modèle", modelDefault: "par défaut", modelSwitched: "Modèle changé : {name}",
+    loginSub: "Connectez-vous pour ouvrir vos discussions", lName: "Nom", lPass: "Mot de passe", show: "Afficher", hide: "Masquer", remember: "Se souvenir de moi sur cet appareil", loginBtn: "Se connecter", loginFoot: "Tout reste sur l’ordinateur du propriétaire", wrong: "Nom ou mot de passe incorrect. Essais restants : {n}", locked: "Trop d’essais. Réessayez dans {m} min.", logout: "Se déconnecter", roleAdmin: "propriétaire", roleGuest: "invité", pwBtn: "Utilisateurs", pwTitle: "Utilisateurs", pwSub: "Chacun a ses propres discussions. Une nouvelle personne change le mot de passe temporaire à sa première connexion.", pwNew: "Nouveau mot de passe", save: "Enregistrer", saved: "Enregistré", pwShort: "Au moins 4 caractères", weak: "Les mots de passe simples par défaut sont toujours actifs. Changez-les avant d’ouvrir Lumelle à d’autres personnes.", colName: "Nom", colRole: "Rôle", colChats: "Discussions", roleUser: "utilisateur", addBtn: "Ajouter", tempPw: "Mot de passe temporaire", newPwPh: "nouveau mot de passe", delUser: "Supprimer", confirmUserDel: "Supprimer {name} et toutes ses discussions ? C’est définitif.", errTaken: "Ce nom est déjà pris", errBadName: "Nom : 32 lettres ou chiffres maximum, sans espaces", added: "Ajouté : {name}", mustTitle: "Choisissez votre mot de passe", mustSub: "Vous avez un mot de passe temporaire. Définissez le vôtre pour continuer.", mustSave: "Enregistrer et continuer", say: "Lire à voix haute", sayStop: "Arrêter", readAloud: "Lire les réponses à voix haute", mic: "Parler", micStop: "Arrêter l’enregistrement", transcribing: "Reconnaissance de la parole…", sttSlow: "Le modèle de reconnaissance se télécharge pour la première fois (~0,5 Go), cela prend quelques minutes…", micInsecure: "Le micro ne fonctionne que sur cet ordinateur (127.0.0.1) ou via une adresse https sécurisée. Le guide explique comment l’obtenir, section téléphone.", micDenied: "Pas d’accès au micro. Autorisez-le dans les réglages du navigateur et réessayez.", sttMissing: "La reconnaissance vocale n’est pas installée. Relancez Lumelle avec internet : il installera les bibliothèques.", sttFailed: "Impossible de reconnaître la parole : ", sttEmpty: "Je n’ai rien entendu. Réessayez plus près du micro.", modelLabel: "Modèle", modelDefault: "par défaut", modelSwitched: "Modèle changé : {name}", docsBtn: "Documents", docsTitle: "Mes documents", docsSub: "Importez des notes, des cours ou des réponses de tests. Activez « D’après mes documents » en bas : Lumelle répondra à partir d’eux et indiquera la source. Vous seul voyez vos fichiers.", docsUpload: "Importer un fichier", docsTypes: ".docx, .pdf, .txt, .md — jusqu’à 15 Mo. Vous pouvez les déposer ici.", docsEmpty: "Aucun document pour l’instant", docsParts: "fragments : {n}", useDocs: "D’après mes documents", docUploaded: "Importé : {name}", docConfirmDel: "Supprimer « {name} » ?", docErrType: "Format non pris en charge : utilisez .docx, .pdf, .txt ou .md", docErrBig: "Le fichier dépasse 15 Mo", docErrRead: "Impossible de lire le fichier. Un PDF scanné ne contient pas de texte.", docErrEmpty: "Aucun texte trouvé dans le fichier", docUploading: "Importation…",
     newChat: "+ Nouvelle discussion", newChatTitle: "Nouvelle discussion", send: "Envoyer", noChats: "Aucune discussion",
     placeholder: "Écrivez un message…  (Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne)",
     think: "Réfléchir avant de répondre (plus lent, mais plus logique)", offline: "Fonctionne hors ligne",
@@ -639,7 +669,7 @@ const STRINGS = {
     ],
   },
   de: {
-    loginSub: "Melde dich an, um deine Chats zu öffnen", lName: "Name", lPass: "Passwort", show: "Anzeigen", hide: "Verbergen", remember: "Auf diesem Gerät angemeldet bleiben", loginBtn: "Anmelden", loginFoot: "Alles bleibt auf dem Computer des Besitzers", wrong: "Falscher Name oder falsches Passwort. Verbleibende Versuche: {n}", locked: "Zu viele Versuche. Versuch es in {m} Min. erneut.", logout: "Abmelden", roleAdmin: "Besitzer", roleGuest: "Gast", pwBtn: "Benutzer", pwTitle: "Benutzer", pwSub: "Jeder hat eigene Chats. Neue Personen ändern das vorläufige Passwort bei der ersten Anmeldung.", pwNew: "Neues Passwort", save: "Speichern", saved: "Gespeichert", pwShort: "Mindestens 4 Zeichen", weak: "Es sind noch die einfachen Standardpasswörter gesetzt. Ändere sie, bevor du Lumelle für andere öffnest.", colName: "Name", colRole: "Rolle", colChats: "Chats", roleUser: "Benutzer", addBtn: "Hinzufügen", tempPw: "Vorläufiges Passwort", newPwPh: "neues Passwort", delUser: "Löschen", confirmUserDel: "{name} und alle Chats löschen? Das lässt sich nicht rückgängig machen.", errTaken: "Dieser Name ist schon vergeben", errBadName: "Name: bis zu 32 Buchstaben oder Ziffern, ohne Leerzeichen", added: "Hinzugefügt: {name}", mustTitle: "Wähle dein Passwort", mustSub: "Du hast ein vorläufiges Passwort. Lege dein eigenes fest, um weiterzumachen.", mustSave: "Speichern und weiter", say: "Vorlesen", sayStop: "Stopp", readAloud: "Antworten vorlesen", mic: "Sprechen", micStop: "Aufnahme beenden", transcribing: "Sprache wird erkannt…", sttSlow: "Das Spracherkennungsmodell wird zum ersten Mal geladen (~0,5 GB), das dauert ein paar Minuten…", micInsecure: "Das Mikrofon funktioniert nur auf diesem Computer (127.0.0.1) oder über eine sichere https-Adresse. Wie du sie bekommst, steht in der Anleitung im Abschnitt zum Handy.", micDenied: "Kein Zugriff auf das Mikrofon. Erlaube es in den Browser-Einstellungen und versuch es erneut.", sttMissing: "Die Spracherkennung ist nicht installiert. Starte Lumelle mit Internet neu, dann werden die Bibliotheken installiert.", sttFailed: "Sprache konnte nicht erkannt werden: ", sttEmpty: "Ich habe nichts verstanden. Versuch es näher am Mikrofon.", modelLabel: "Modell", modelDefault: "Standard", modelSwitched: "Modell gewechselt: {name}",
+    loginSub: "Melde dich an, um deine Chats zu öffnen", lName: "Name", lPass: "Passwort", show: "Anzeigen", hide: "Verbergen", remember: "Auf diesem Gerät angemeldet bleiben", loginBtn: "Anmelden", loginFoot: "Alles bleibt auf dem Computer des Besitzers", wrong: "Falscher Name oder falsches Passwort. Verbleibende Versuche: {n}", locked: "Zu viele Versuche. Versuch es in {m} Min. erneut.", logout: "Abmelden", roleAdmin: "Besitzer", roleGuest: "Gast", pwBtn: "Benutzer", pwTitle: "Benutzer", pwSub: "Jeder hat eigene Chats. Neue Personen ändern das vorläufige Passwort bei der ersten Anmeldung.", pwNew: "Neues Passwort", save: "Speichern", saved: "Gespeichert", pwShort: "Mindestens 4 Zeichen", weak: "Es sind noch die einfachen Standardpasswörter gesetzt. Ändere sie, bevor du Lumelle für andere öffnest.", colName: "Name", colRole: "Rolle", colChats: "Chats", roleUser: "Benutzer", addBtn: "Hinzufügen", tempPw: "Vorläufiges Passwort", newPwPh: "neues Passwort", delUser: "Löschen", confirmUserDel: "{name} und alle Chats löschen? Das lässt sich nicht rückgängig machen.", errTaken: "Dieser Name ist schon vergeben", errBadName: "Name: bis zu 32 Buchstaben oder Ziffern, ohne Leerzeichen", added: "Hinzugefügt: {name}", mustTitle: "Wähle dein Passwort", mustSub: "Du hast ein vorläufiges Passwort. Lege dein eigenes fest, um weiterzumachen.", mustSave: "Speichern und weiter", say: "Vorlesen", sayStop: "Stopp", readAloud: "Antworten vorlesen", mic: "Sprechen", micStop: "Aufnahme beenden", transcribing: "Sprache wird erkannt…", sttSlow: "Das Spracherkennungsmodell wird zum ersten Mal geladen (~0,5 GB), das dauert ein paar Minuten…", micInsecure: "Das Mikrofon funktioniert nur auf diesem Computer (127.0.0.1) oder über eine sichere https-Adresse. Wie du sie bekommst, steht in der Anleitung im Abschnitt zum Handy.", micDenied: "Kein Zugriff auf das Mikrofon. Erlaube es in den Browser-Einstellungen und versuch es erneut.", sttMissing: "Die Spracherkennung ist nicht installiert. Starte Lumelle mit Internet neu, dann werden die Bibliotheken installiert.", sttFailed: "Sprache konnte nicht erkannt werden: ", sttEmpty: "Ich habe nichts verstanden. Versuch es näher am Mikrofon.", modelLabel: "Modell", modelDefault: "Standard", modelSwitched: "Modell gewechselt: {name}", docsBtn: "Dokumente", docsTitle: "Meine Dokumente", docsSub: "Lade Notizen, Vorlesungen oder Testantworten hoch. Schalte unten „Aus meinen Dokumenten“ ein, dann antwortet Lumelle daraus und zeigt die Quelle. Nur du siehst deine Dateien.", docsUpload: "Datei hochladen", docsTypes: ".docx, .pdf, .txt, .md — bis 15 MB. Du kannst Dateien hierher ziehen.", docsEmpty: "Noch keine Dokumente", docsParts: "Teile: {n}", useDocs: "Aus meinen Dokumenten", docUploaded: "Hochgeladen: {name}", docConfirmDel: "„{name}“ löschen?", docErrType: "Dieses Format wird nicht unterstützt: .docx, .pdf, .txt oder .md", docErrBig: "Die Datei ist größer als 15 MB", docErrRead: "Die Datei konnte nicht gelesen werden. Ein gescanntes PDF enthält keinen Text.", docErrEmpty: "In der Datei wurde kein Text gefunden", docUploading: "Wird hochgeladen…",
     newChat: "+ Neuer Chat", newChatTitle: "Neuer Chat", send: "Senden", noChats: "Noch keine Chats",
     placeholder: "Nachricht eingeben…  (Enter zum Senden, Umschalt+Enter für neue Zeile)",
     think: "Vor dem Antworten nachdenken (langsamer, aber logischer)", offline: "Funktioniert offline",
@@ -878,7 +908,7 @@ async function send(text, images = []) {
     }
     const res = await api(`/chats/${state.current.id}/ask`, {
       method: "POST",
-      body: { text, images, think: $("think").checked, ui_lang: lang },
+      body: { text, images, think: $("think").checked, ui_lang: lang, use_docs: !$("useDocsLbl").hidden && $("useDocs").checked },
     });
     typing.remove();
     const answerDiv = addMessage("assistant", res.answer);
@@ -1369,11 +1399,60 @@ $("modelSel").onchange = async () => {
   } catch (err) { addMessage("error", err.message); loadModels(); }
 };
 
+// ---------- документы ----------
+let docsCache = [];
+function docErr(err) {
+  const c = err.detail && err.detail.code;
+  return { doc_type: t("docErrType"), doc_big: t("docErrBig"), doc_read: t("docErrRead"), doc_empty: t("docErrEmpty") }[c] || err.message;
+}
+async function loadDocs() {
+  try { docsCache = await api("/documents"); } catch (e) { docsCache = []; }
+  $("docsBtn").hidden = !me;
+  $("docsCount").textContent = docsCache.length || "";
+  $("useDocsLbl").hidden = !docsCache.length;
+  $("docList").innerHTML = docsCache.length
+    ? docsCache.map((d) => `<div class="doc-row" data-doc="${d.id}"><span class="nm" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span><span class="meta">${t("docsParts").replace("{n}", d.parts)}</span><button data-del-doc="${d.id}">${t("delUser")}</button></div>`).join("")
+    : `<div class="doc-empty">${t("docsEmpty")}</div>`;
+}
+try { $("useDocs").checked = localStorage.getItem("lumelle-docs") !== "0"; } catch (e) { $("useDocs").checked = true; }
+$("useDocs").onchange = () => { try { localStorage.setItem("lumelle-docs", $("useDocs").checked ? "1" : "0"); } catch (e) {} };
+$("docsBtn").onclick = () => { $("docMsg").textContent = ""; loadDocs(); $("docsDlg").classList.add("open"); };
+$("docsClose").onclick = () => $("docsDlg").classList.remove("open");
+$("docsDlg").addEventListener("click", async (e) => {
+  if (e.target === $("docsDlg")) { $("docsDlg").classList.remove("open"); return; }
+  const b = e.target.closest("[data-del-doc]"); if (!b) return;
+  const d = docsCache.find((x) => String(x.id) === b.dataset.delDoc);
+  if (!d || !confirm(t("docConfirmDel").replace("{name}", d.name))) return;
+  try { await api(`/documents/${d.id}`, { method: "DELETE" }); $("docMsg").textContent = ""; await loadDocs(); }
+  catch (err) { $("docMsg").textContent = err.message; }
+});
+async function uploadDocs(files) {
+  for (const f of files) {
+    $("docMsg").textContent = t("docUploading") + " " + f.name;
+    const fd = new FormData(); fd.append("file", f, f.name);
+    try {
+      const res = await fetch("/documents", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) { showLogin(); return; }
+      if (!res.ok) { const err = new Error(typeof data.detail === "string" ? data.detail : res.status); err.detail = data.detail; throw err; }
+      $("docMsg").textContent = t("docUploaded").replace("{name}", data.name);
+      if (!$("useDocs").checked) { $("useDocs").checked = true; $("useDocs").onchange(); }
+    } catch (err) { $("docMsg").textContent = f.name + ": " + docErr(err); }
+  }
+  await loadDocs();
+}
+$("docFile").onchange = () => { uploadDocs([...$("docFile").files]); $("docFile").value = ""; };
+["dragenter", "dragover"].forEach((ev) => $("docDrop").addEventListener(ev, (e) => { e.preventDefault(); $("docDrop").classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => $("docDrop").addEventListener(ev, (e) => { e.preventDefault(); $("docDrop").classList.remove("over"); }));
+$("docDrop").addEventListener("drop", (e) => uploadDocs([...e.dataTransfer.files]));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("docsDlg").classList.remove("open"); });
+
 // ---------- вход: admin и guest ----------
 let me = null;
 function showLogin() {
   me = null;
   document.body.classList.add("need-login");
+  $("docsBtn").hidden = true; $("useDocsLbl").hidden = true;
   $("meBox").hidden = true;
   $("lgErr").hidden = true;
   setTimeout(() => $("lgName").focus(), 50);
@@ -1388,6 +1467,7 @@ function setUser(u) {
   $("pwBtn").hidden = u.role !== "admin";
   if (u.must_change) askOwnPassword();
   loadModels();
+  loadDocs();
 }
 $("loginLang").innerHTML = $("langSel").innerHTML;
 $("loginLang").onchange = () => { $("langSel").value = $("loginLang").value; $("langSel").onchange(); };

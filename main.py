@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from docs_search import extract_text, search, split_chunks
 from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
 
 # Настройки можно поменять переменными окружения (удобно для слабых компьютеров):
@@ -235,6 +236,19 @@ def init_db():
                 salt TEXT NOT NULL,
                 pw_hash TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner TEXT NOT NULL,
+                name TEXT NOT NULL,
+                chars INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS doc_chunks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                doc_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+                idx INTEGER NOT NULL,
+                text TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -288,12 +302,13 @@ async def ollama_models() -> List[str]:
     return sorted(m["name"] for m in r.json().get("models", []))
 
 
-async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_lang: Optional[str] = None) -> str:
+async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_lang: Optional[str] = None,
+                     context: str = "") -> str:
     has_images = any(m.get("images") for m in messages)
     model = VISION_MODEL if has_images else current_model()
     payload = {
         "model": model,
-        "messages": [{"role": "system", "content": system_prompt(mode, ui_lang)}] + messages,
+        "messages": [{"role": "system", "content": system_prompt(mode, ui_lang) + context}] + messages,
         "stream": False,
         "think": think,
         "keep_alive": KEEP_ALIVE,
@@ -319,11 +334,12 @@ async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_
     return r.json()["message"]["content"].strip()
 
 
-async def answer_for(mode: str, messages: List[dict], think: bool, ui_lang: Optional[str] = None) -> str:
+async def answer_for(mode: str, messages: List[dict], think: bool, ui_lang: Optional[str] = None,
+                     context: str = "") -> str:
     """Ответ модели; в режиме Slides — план слайдов + готовый .pptx."""
     if mode != "slides":
-        return await call_model(mode, messages, think, ui_lang=ui_lang)
-    raw = await call_model(mode, messages, think, fmt=SLIDES_SCHEMA, ui_lang=ui_lang)
+        return await call_model(mode, messages, think, ui_lang=ui_lang, context=context)
+    raw = await call_model(mode, messages, think, fmt=SLIDES_SCHEMA, ui_lang=ui_lang, context=context)
     try:
         deck = clean_deck(json.loads(raw))
     except (ValueError, TypeError, AttributeError):
@@ -360,6 +376,7 @@ class ChatMessage(BaseModel):
     think: bool = False
     images: List[str] = []
     ui_lang: Optional[str] = None
+    use_docs: bool = False  # отвечать по документам пользователя
 
 
 class ChatUpdate(BaseModel):
@@ -502,9 +519,86 @@ def delete_user(name: str, user: dict = Depends(admin_only)):
             raise HTTPException(status_code=400, detail="The admin account cannot be deleted")
         conn.execute("DELETE FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE owner = ?)", (name,))
         conn.execute("DELETE FROM chats WHERE owner = ?", (name,))
+        conn.execute("DELETE FROM doc_chunks WHERE doc_id IN (SELECT id FROM documents WHERE owner = ?)", (name,))
+        conn.execute("DELETE FROM documents WHERE owner = ?", (name,))
         conn.execute("DELETE FROM sessions WHERE user = ?", (name,))
         conn.execute("DELETE FROM users WHERE name = ?", (name,))
     return {"deleted": name}
+
+
+# ---------- документы ----------
+
+MAX_DOC_BYTES = 15_000_000
+DOC_TYPES = (".docx", ".pdf", ".txt", ".md", ".csv")
+
+
+def docs_context(owner: str, question: str):
+    """Находит в документах пользователя фрагменты по вопросу → (текст для модели, подписи источников)."""
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT c.id, c.idx, c.text, d.name FROM doc_chunks c JOIN documents d ON d.id = c.doc_id WHERE d.owner = ?",
+            (owner,)).fetchall()
+    if not rows:
+        return "", []
+    by_id = {r["id"]: r for r in rows}
+    found = search(question, [(r["id"], r["text"]) for r in rows], k=4)
+    if not found:
+        return ("\n\nThe user asked to answer from their documents, but nothing relevant was found in them. "
+                "Say so briefly, then answer from general knowledge and mark that part as not from the documents."), []
+    parts, used = [], {}
+    for n, (_, cid, text) in enumerate(found, 1):
+        r = by_id[cid]
+        parts.append(f"[{n}] {r['name']}, part {r['idx'] + 1}:\n{text}")
+        used.setdefault(r["name"], []).append(r["idx"] + 1)
+    sources = [f"{name} — {', '.join(str(i) for i in sorted(idx))}" for name, idx in used.items()]
+    context = ("\n\nAnswer using the excerpts from the user's own documents below. They are the user's "
+               "materials and take priority over general knowledge. Tables are written as «cell | cell». "
+               "If an answer is marked as disputed («спорно»), say so. If the excerpts do not contain the answer, "
+               "say that the documents don't cover it and only then use general knowledge.\n\n" + "\n\n".join(parts))
+    return context, sources
+
+
+@app.get("/documents", summary="Мои документы")
+def list_documents(user: dict = Depends(current_user)):
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT d.id, d.name, d.chars, d.created_at, COUNT(c.id) AS parts FROM documents d "
+            "LEFT JOIN doc_chunks c ON c.doc_id = d.id WHERE d.owner = ? GROUP BY d.id ORDER BY d.id DESC",
+            (user["name"],)).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.post("/documents", summary="Загрузить документ (.docx, .pdf, .txt, .md)")
+async def upload_document(file: UploadFile = File(...), user: dict = Depends(current_user)):
+    name = Path(file.filename or "document").name[:120]
+    if not name.lower().endswith(DOC_TYPES):
+        raise HTTPException(status_code=400, detail={"code": "doc_type"})
+    data = await file.read()
+    if len(data) > MAX_DOC_BYTES:
+        raise HTTPException(status_code=413, detail={"code": "doc_big"})
+    try:
+        text = await run_in_threadpool(extract_text, name, data)
+    except Exception:
+        raise HTTPException(status_code=400, detail={"code": "doc_read"})
+    chunks = split_chunks(text)
+    if not chunks:
+        raise HTTPException(status_code=400, detail={"code": "doc_empty"})
+    with db() as conn:
+        cur = conn.execute("INSERT INTO documents (owner, name, chars, created_at) VALUES (?, ?, ?, ?)",
+                           (user["name"], name, len(text), now()))
+        conn.executemany("INSERT INTO doc_chunks (doc_id, idx, text) VALUES (?, ?, ?)",
+                         [(cur.lastrowid, i, c) for i, c in enumerate(chunks)])
+    return {"id": cur.lastrowid, "name": name, "parts": len(chunks)}
+
+
+@app.delete("/documents/{doc_id}", summary="Удалить документ")
+def delete_document(doc_id: int, user: dict = Depends(current_user)):
+    with db() as conn:
+        if not conn.execute("SELECT 1 FROM documents WHERE id = ? AND owner = ?", (doc_id, user["name"])).fetchone():
+            raise HTTPException(status_code=404, detail="Document not found")
+        conn.execute("DELETE FROM doc_chunks WHERE doc_id = ?", (doc_id,))
+        conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+    return {"deleted": doc_id}
 
 
 # ---------- выбор модели ----------
@@ -669,7 +763,10 @@ async def ask_in_chat(chat_id: int, req: ChatMessage, user: dict = Depends(curre
         current["images"] = req.images
     messages.append(current)
 
-    answer = await answer_for(chat["mode"], messages, req.think, req.ui_lang)
+    context, sources = docs_context(user["name"], req.text) if req.use_docs and req.text.strip() else ("", [])
+    answer = await answer_for(chat["mode"], messages, req.think, req.ui_lang, context)
+    if sources and chat["mode"] != "slides":
+        answer += "\n\n📎 " + "; ".join(sources)
 
     with db() as conn:
         conn.executemany(

@@ -77,6 +77,10 @@ Add options to the start command: `start.bat --lan` on Windows or `./start.sh --
 
 While the default passwords are set, use `--lan` only on your home network or through Tailscale. In a café or a dorm, strangers could open your chats.
 
+## Documents
+
+Press **Documents** on the left and upload .docx, .pdf, .txt or .md files (up to 15 MB). Turn on **From my documents** at the bottom: Lumelle looks for the answer in your files and shows where it comes from (📎 file — part number). The search works offline without an extra model; ask in the language the document is written in. Scanned PDFs without text can't be read. Only you see your documents.
+
 ## Voice
 
 - **🔊 Read aloud** under every answer and the **“Read answers aloud”** checkbox at the bottom. The system voices speak (on a Mac you can add more in System Settings → Accessibility → Spoken Content → System Voice → Manage Voices); no internet needed.
