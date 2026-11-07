@@ -131,7 +131,7 @@ async def warm_up_model():
         try:
             async with httpx.AsyncClient(timeout=300) as client:
                 await client.post(OLLAMA_URL.replace("/api/chat", "/api/generate"),
-                                  json={"model": MODEL, "keep_alive": KEEP_ALIVE})
+                                  json={"model": current_model(), "keep_alive": KEEP_ALIVE})
         except httpx.HTTPError:
             pass  # Ollama не запущена — run.py уже подсказал, что делать
     asyncio.create_task(load())
@@ -235,6 +235,10 @@ def init_db():
                 salt TEXT NOT NULL,
                 pw_hash TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS sessions (
                 token TEXT PRIMARY KEY,
                 user TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
@@ -271,9 +275,22 @@ def get_chat_or_404(conn, chat_id: int, owner: str):
 
 # ---------- обращение к модели ----------
 
+def current_model() -> str:
+    """Текстовая модель: выбранная admin в интерфейсе, иначе — по умолчанию (qwen3:8b или --model)."""
+    with db() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key = 'model'").fetchone()
+    return row["value"] if row else MODEL
+
+
+async def ollama_models() -> List[str]:
+    async with httpx.AsyncClient(timeout=5) as client:
+        r = await client.get(OLLAMA_URL.replace("/api/chat", "/api/tags"))
+    return sorted(m["name"] for m in r.json().get("models", []))
+
+
 async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_lang: Optional[str] = None) -> str:
     has_images = any(m.get("images") for m in messages)
-    model = VISION_MODEL if has_images else MODEL
+    model = VISION_MODEL if has_images else current_model()
     payload = {
         "model": model,
         "messages": [{"role": "system", "content": system_prompt(mode, ui_lang)}] + messages,
@@ -488,6 +505,40 @@ def delete_user(name: str, user: dict = Depends(admin_only)):
         conn.execute("DELETE FROM sessions WHERE user = ?", (name,))
         conn.execute("DELETE FROM users WHERE name = ?", (name,))
     return {"deleted": name}
+
+
+# ---------- выбор модели ----------
+
+class ModelChoice(BaseModel):
+    name: str
+
+
+@app.get("/models", summary="Скачанные модели и какая сейчас отвечает")
+async def list_models(user: dict = Depends(current_user)):
+    try:
+        names = await ollama_models()
+    except (httpx.HTTPError, ValueError):
+        names = []
+    # модели для картинок и распознавания речи отвечать на текст не умеют — прячем их из списка
+    text_models = [n for n in names if "-vl" not in n and "embed" not in n]
+    return {"models": text_models, "current": current_model(), "default": MODEL}
+
+
+@app.post("/models/current", summary="Выбрать модель (только admin)")
+async def choose_model(req: ModelChoice, user: dict = Depends(admin_only)):
+    try:
+        names = await ollama_models()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(status_code=502, detail="Ollama is not available")
+    if req.name not in names:
+        raise HTTPException(status_code=404, detail=f"Model {req.name} is not downloaded")
+    with db() as conn:
+        if req.name == MODEL:
+            conn.execute("DELETE FROM settings WHERE key = 'model'")  # вернулись к модели по умолчанию
+        else:
+            conn.execute("INSERT OR REPLACE INTO settings VALUES ('model', ?)",
+                         (req.name,))
+    return {"current": current_model()}
 
 
 # ---------- распознавание речи ----------

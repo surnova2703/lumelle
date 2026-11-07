@@ -1,0 +1,132 @@
+# Seed tasks for the training set: <mode> TAB <prompt>. Add your own lines in the same format.
+# Modes: chat, write, translate, learn. Lines starting with # are skipped.
+chat	Что такое VPN? Объясни простыми словами
+chat	Чем оперативная память отличается от жёсткого диска?
+chat	Как работает нейросеть? Объясни школьнику
+chat	Почему небо голубое?
+chat	Что такое инфляция и почему растут цены?
+chat	Как подготовиться к экзамену за неделю?
+chat	Чем отличается Python от JavaScript?
+chat	Что такое API? Приведи пример из жизни
+chat	Как правильно делать перерывы, когда долго учишься?
+chat	Что такое SQL и зачем он нужен аналитику?
+chat	Объясни, что такое локальная модель ИИ и чем она отличается от облачной
+chat	Как составить резюме, если нет опыта работы?
+chat	Что такое Git и зачем он программисту?
+chat	Как выбрать ноутбук для учёбы и программирования?
+chat	Что такое бизнес-информатика?
+chat	Как работает шифрование в мессенджерах?
+chat	Сравни Excel и Google Таблицы для учёбы
+chat	Что такое машинное обучение? Дай три примера
+chat	Как перестать откладывать дела на потом?
+chat	Что такое HTTP и HTTPS?
+chat	What is the difference between RAM and storage?
+chat	Explain what an API is with a simple example
+chat	How do I prepare for a job interview as a junior analyst?
+chat	What is overfitting in machine learning?
+chat	Give me three tips to improve my English speaking
+chat	What is the difference between a list and a tuple in Python?
+chat	How does a router work at home?
+chat	What is a large language model?
+chat	Explain recursion in simple words
+chat	How can I stay focused while studying online?
+chat	Сколько будет 15% от 2400? Покажи, как считать
+chat	Если поезд едет 80 км/ч, за сколько он проедет 300 км?
+chat	Составь план изучения Python на месяц
+chat	Какие вопросы задают на собеседовании аналитику данных?
+chat	Объясни разницу между средним и медианой на примере зарплат
+chat	Что такое Docker? Коротко
+chat	Что делать, если ноутбук сильно греется?
+chat	Как работает рекомендательная система в онлайн-магазине?
+chat	Что такое Tailscale и зачем он нужен?
+chat	Чем отличается статья для конференции от курсовой работы?
+write	Напиши письмо преподавателю с просьбой перенести срок сдачи работы на неделю
+write	Напиши короткий пост для Telegram о том, что я сделала своё приложение с ИИ
+write	Напиши сопроводительное письмо на позицию младшего аналитика данных
+write	Напиши вежливый отказ от предложения о работе
+write	Напиши поздравление подруге с днём рождения, тепло и с юмором
+write	Напиши эссе на 150 слов о пользе изучения иностранных языков
+write	Напиши объявление о продаже ноутбука MacBook Air M2, 16 ГБ
+write	Напиши письмо в поддержку интернет-магазина: заказ не пришёл вовремя
+write	Напиши краткое описание проекта для резюме: офлайн-ассистент на локальной модели
+write	Напиши благодарность научному руководителю после защиты
+write	Напиши пост для LinkedIn о завершении магистратуры
+write	Напиши напоминание группе о дедлайне по проекту в пятницу
+write	Напиши отзыв о курсе по Python: что понравилось и что улучшить
+write	Напиши текст для слайда «Наши клиенты»: студенты, путешественники, малый бизнес
+write	Сократи этот текст до двух предложений: «Мы разрабатываем приложение, которое работает без интернета, хранит данные на устройстве пользователя и помогает с текстами, переводом и учёбой»
+write	Write a short email to a colleague asking for the meeting notes
+write	Write a LinkedIn post about launching my first open-source project
+write	Write a polite reminder about an unpaid invoice
+write	Write a 100-word essay about the importance of privacy online
+write	Write a cover letter for a junior data analyst position
+write	Write a thank-you note to a teacher
+write	Write a product description for an offline AI assistant
+write	Write an out-of-office reply for a two-week vacation
+write	Write a short motivational message for a friend before an exam
+write	Write three catchy titles for a blog post about learning English
+write	Напиши инструкцию в 5 шагов, как установить приложение на Mac
+write	Перепиши официальнее: «Привет, скинь, пожалуйста, отчёт, он мне срочно нужен»
+write	Перепиши проще: «Осуществление деятельности по оказанию консультационных услуг»
+write	Напиши SMS-напоминание о записи к врачу на завтра в 10:00
+write	Напиши тост на свадьбу брата, коротко и душевно
+translate	Твои данные остаются у тебя
+translate	Приложение работает без интернета и не отправляет данные в облако
+translate	Спасибо за ваше письмо, я отвечу в течение двух дней
+translate	Мы рады пригласить вас на конференцию 27 ноября
+translate	Пожалуйста, проверьте вложение и сообщите, если нужны изменения
+translate	Я учусь в магистратуре по прикладной информатике
+translate	Your data stays with you
+translate	The meeting has been moved to Thursday at 3 pm
+translate	I would like to apply for the position of junior analyst
+translate	Could you please send me the latest version of the report?
+translate	This feature is not available offline yet
+translate	на испанский: Добро пожаловать! Чем я могу помочь?
+translate	на немецкий: Где находится ближайшая станция метро?
+translate	на французский: Я хотела бы забронировать столик на двоих
+translate	на китайский: Спасибо за помощь
+translate	to Russian: Please keep your password safe and do not share it
+translate	to German: The application works on Windows, macOS and Linux
+translate	to French: Thank you for your attention! Any questions?
+translate	Wie spät ist es?
+translate	Je ne comprends pas cette question
+translate	Это не просто идея: я действительно сделала этот продукт
+translate	Смени пароль перед тем, как открывать доступ другим людям
+translate	Break a leg!
+translate	It's raining cats and dogs
+translate	Без труда не выловишь и рыбку из пруда
+translate	Every cloud has a silver lining
+translate	Модель загружается в память при запуске, поэтому первый ответ приходит быстрее
+translate	The first start takes 1–3 minutes
+translate	Нажми на кнопку с микрофоном и говори
+translate	Lumelle answers in the language you write in
+learn	Определи мой уровень английского: задай несколько вопросов
+learn	Объясни Present Perfect простыми словами и дай упражнение
+learn	Чем отличается Past Simple от Present Perfect?
+learn	Дай 8 полезных английских слов на тему «Путешествия» и проверь меня
+learn	Объясни артикли a, an и the
+learn	Как правильно использовать much и many?
+learn	Дай 5 фразовых глаголов с get и примеры
+learn	Проверь мой текст: I has visited London last year and it were very interesting
+learn	Проверь: She don't like coffee, but she likes tea very much
+learn	Давай потренируем разговор: ты бариста, я посетитель
+learn	Объясни условные предложения First Conditional
+learn	Дай упражнение на предлоги in, on, at
+learn	Как сказать по-английски «мне нужно подумать»? Дай несколько вариантов
+learn	Объясни разницу между say, tell, speak и talk
+learn	Дай 10 слов для собеседования на английском
+learn	Мои ответы: 1. went 2. has lived 3. Have you seen. Проверь
+learn	Explain the difference between "for" and "since"
+learn	Give me a short quiz on irregular verbs
+learn	Check my sentence: "I am agree with you"
+learn	Let's practise a job interview in English. You are the interviewer
+learn	Объясни passive voice на примерах
+learn	Как запомнить неправильные глаголы? Дай способ и 10 глаголов
+learn	Хочу учить немецкий. С чего начать? Дай первые 10 слов
+learn	Объясни, как по-французски поздороваться и попрощаться в разных ситуациях
+learn	Дай 5 базовых фраз на китайском с пиньинем
+learn	Проверь мой текст: Yesterday I go to university and meet my friends
+learn	Объясни разницу между make и do с примерами
+learn	Дай упражнение на модальные глаголы can, must, should
+learn	Как правильно писать деловое письмо на английском? Дай шаблон
+learn	Объясни, когда ставится запятая перед which и that

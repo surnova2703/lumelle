@@ -3,3 +3,12 @@ __pycache__/
 lumelle.db
 generated/
 .DS_Store
+
+# training (large, personal or rebuildable)
+training/data/
+training/adapters/
+training/fused/
+training/llama.cpp/
+training/.venv-train/
+training/*.gguf
+training/Modelfile
