@@ -1,14 +1,19 @@
-"""Online models by the owner's own API keys: Claude (Anthropic), ChatGPT (OpenAI), Perplexity.
+"""Online models by the owner's own API keys: GigaChat (Sber), Claude (Anthropic), ChatGPT (OpenAI), Perplexity.
 
 They are optional: Lumelle works offline without them. When one is chosen, the question, the chat
 history and the excerpts from the documents are sent to that company over the internet.
 Model names change often, so they are not written here: the list comes from the service itself.
 """
+import ssl
+import time
+import uuid
+from pathlib import Path
 from typing import List, Optional
 
 import httpx
 
 PROVIDERS = {
+    "gigachat": {"label": "GigaChat", "keys_url": "https://developers.sber.ru/docs/ru/gigachat/individuals-quickstart"},
     "anthropic": {"label": "Claude", "keys_url": "https://console.anthropic.com/settings/keys"},
     "openai": {"label": "ChatGPT", "keys_url": "https://platform.openai.com/api-keys"},
     "perplexity": {"label": "Perplexity", "keys_url": "https://www.perplexity.ai/account/api"},
@@ -16,6 +21,68 @@ PROVIDERS = {
 # Perplexity's Agent API has no model list: the "effort" decides how deep it searches
 PERPLEXITY_EFFORTS = ["fast", "low", "medium", "high"]
 TIMEOUT = httpx.Timeout(300, connect=10)
+
+# GigaChat: the key ("Authorization key") is exchanged for a token that lives 30 minutes.
+# Its servers use the Russian Trusted Root CA, which Lumelle trusts only for these requests.
+GIGACHAT_AUTH = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+GIGACHAT_HOSTS = ["https://gigachat.devices.sberbank.ru/api/v1", "https://api.giga.chat/v1"]
+GIGACHAT_CERT = Path(__file__).parent / "certs" / "russian_trusted_root_ca.pem"
+_giga_tokens = {}  # key -> (token, expires at, unix seconds)
+
+
+def _giga_ssl() -> ssl.SSLContext:
+    ctx = ssl.create_default_context()
+    try:
+        import certifi
+        ctx.load_verify_locations(certifi.where())
+    except ImportError:
+        pass
+    if GIGACHAT_CERT.exists():
+        ctx.load_verify_locations(str(GIGACHAT_CERT))
+    return ctx
+
+
+async def _giga_token(client: httpx.AsyncClient, key: str) -> str:
+    tok = _giga_tokens.get(key)
+    if tok and tok[1] > time.time() + 60:
+        return tok[0]
+    r = await client.post(GIGACHAT_AUTH, data={"scope": "GIGACHAT_API_PERS"},
+                          headers={"Authorization": f"Basic {key}", "RqUID": str(uuid.uuid4()), "Accept": "application/json"})
+    if r.status_code in (400, 401, 403):
+        raise CloudError("GigaChat: the authorization key was not accepted (copy the «Authorization key» of the project)")
+    _check(r, "GigaChat")
+    data = r.json()
+    token = data.get("access_token") or data.get("tok")
+    exp = data.get("expires_at") or data.get("exp") or 0
+    exp = exp / 1000 if exp > 1e11 else (exp or time.time() + 1500)
+    _giga_tokens[key] = (token, exp)
+    return token
+
+
+async def _giga(method: str, path: str, key: str, json_body=None) -> dict:
+    """A GigaChat request: token, then the first host that answers."""
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, verify=_giga_ssl()) as client:
+            token = await _giga_token(client, key)
+            last = None
+            for base in GIGACHAT_HOSTS:
+                try:
+                    r = await client.request(method, base + path, json=json_body,
+                                             headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+                except httpx.ConnectError as e:
+                    last = e
+                    continue
+                if r.status_code == 404 and base != GIGACHAT_HOSTS[-1]:
+                    continue
+                if r.status_code == 401:
+                    _giga_tokens.pop(key, None)
+                _check(r, "GigaChat")
+                return r.json()
+            raise last or CloudError("GigaChat: no answer")
+    except httpx.HTTPError as e:
+        if "CERTIFICATE" in str(e).upper():
+            raise CloudError("GigaChat: the Russian Trusted Root CA certificate is missing (certs folder)")
+        raise CloudError("GigaChat: no connection — check the internet")
 
 
 class CloudError(Exception):
@@ -38,6 +105,10 @@ async def list_models(provider: str, key: str) -> List[str]:
     label = PROVIDERS[provider]["label"]
     if provider == "perplexity":
         return PERPLEXITY_EFFORTS
+    if provider == "gigachat":
+        data = await _giga("GET", "/models", key)
+        ids = [m.get("id", "") for m in data.get("data", [])]
+        return [i for i in ids if i and "embed" not in i.lower()]
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             if provider == "anthropic":
@@ -58,10 +129,11 @@ def default_model(provider: str, models: List[str]) -> Optional[str]:
     """A sensible first choice: a balanced model, not the most expensive one."""
     if not models:
         return None
-    prefer = {"anthropic": ("sonnet",), "openai": ("mini",), "perplexity": ("fast",)}[provider]
-    for m in models:
-        if any(p in m for p in prefer):
-            return m
+    prefer = {"anthropic": ("sonnet",), "openai": ("mini",), "perplexity": ("fast",), "gigachat": ("2-Max", "Max", "Pro")}[provider]
+    for p in prefer:  # in the order of preference
+        for m in models:
+            if p in m:
+                return m
     return models[0]
 
 
@@ -95,6 +167,12 @@ async def ask(provider: str, key: str, model: str, system: str, messages: List[d
     """One answer from an online model. messages: [{role: user|assistant, content: str}]."""
     label = PROVIDERS[provider]["label"]
     msgs = [{"role": m["role"], "content": m["content"]} for m in messages if m.get("content")]
+    if provider == "gigachat":
+        data = await _giga("POST", "/chat/completions", key,
+                           {"model": model, "messages": [{"role": "system", "content": system}] + msgs,
+                            "temperature": max(temperature, 0.01)})
+        choices = data.get("choices") or [{}]
+        return (choices[0].get("message", {}).get("content") or "").strip()
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             if provider == "anthropic":

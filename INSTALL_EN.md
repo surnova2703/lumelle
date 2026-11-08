@@ -112,9 +112,10 @@ Type **“/”** in the message box to see the commands. They work in any mode:
 
 ## Online models (optional)
 
-Lumelle works fully offline. If you have an API key for Claude, ChatGPT or Perplexity, you can connect it: at the bottom open **Model → ⚙ Online models…**, paste the key and press Save. Lumelle checks the key and suggests a model; then choose it in the Model list, and “☁ Online” appears next to it.
+Lumelle works fully offline. You can also connect an online model with a key: **GigaChat** (free for individuals), Claude, ChatGPT or Perplexity: at the bottom open **Model → ⚙ Online models…**, paste the key and press Save. Lumelle checks the key and suggests a model; then choose it in the Model list, and “☁ Online” appears next to it.
 
-- Internet and a topped-up API balance are needed. A normal subscription (Claude Pro, ChatGPT Plus) does not include the API.
+- **GigaChat (free):** open developers.sber.ru, sign in with Sber ID, create a GigaChat API project for an individual (Freemium) and copy the **Authorization key**. The Russian root certificate GigaChat needs is already in the `certs` folder; nothing to install in the system.
+- Claude, ChatGPT, Perplexity: a topped-up API balance is needed; a normal subscription (Claude Pro, ChatGPT Plus) does not include the API.
 - The question, the chat history and the found parts of your documents go to that company.
 - Images and slides always use the local model, and guests always use the local one.
 - Without a connection the local model answers, with a note under the answer.
