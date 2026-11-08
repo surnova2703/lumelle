@@ -1,4 +1,4 @@
-"""Documents: text from .docx / .pdf / .txt / .md, split into fragments, offline keyword search (BM25).
+"""Documents: text from .docx / .pdf / .xlsx / .txt / .md, split into fragments, offline keyword search (BM25).
 
 No extra model is needed: words are reduced to a short stem, so «погрешность», «погрешности»
 and «погрешностей» match each other. Works for Russian, English, French and German; Chinese is
@@ -36,6 +36,8 @@ def extract_text(filename: str, data: bytes) -> str:
         from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(data))
         return "\n\n".join((p.extract_text() or "") for p in reader.pages)
+    if name.endswith((".xlsx", ".xlsm")):
+        return _xlsx_text(data)
     if name.endswith((".txt", ".md", ".csv")):
         for enc in ("utf-8", "cp1251", "latin-1"):
             try:
@@ -72,6 +74,34 @@ def _docx_text(data: bytes) -> str:
     return "\n\n".join(out)
 
 
+def _cell(v) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, float):
+        return f"{v:.6g}".replace(".", ",") if abs(v) < 1e15 else str(v)
+    if hasattr(v, "strftime"):
+        return v.strftime("%d.%m.%Y") if not getattr(v, "hour", 0) and not getattr(v, "minute", 0) else v.strftime("%d.%m.%Y %H:%M")
+    return " ".join(str(v).split())
+
+
+def _xlsx_text(data: bytes) -> str:
+    """Every sheet becomes «Лист: name» + its rows as «cell | cell»; formulas give their last saved values."""
+    from openpyxl import load_workbook
+    wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    out = []
+    for ws in wb.worksheets:
+        rows = [[_cell(v) for v in row] for row in ws.iter_rows(values_only=True)]
+        rows = [r for r in rows if any(r)]
+        if not rows:
+            continue
+        width = max(max(i for i, c in enumerate(r) if c) + 1 for r in rows)
+        width = max(width, 2)  # so every row still looks like a table row
+        out.append(f"Лист: {ws.title}")
+        out.append("\n".join(" | ".join(r[:width] + [""] * (width - len(r[:width]))) for r in rows))
+    wb.close()
+    return "\n\n".join(out)
+
+
 # ---------- fragments ----------
 
 def split_chunks(text: str) -> List[str]:
@@ -90,6 +120,8 @@ def split_chunks(text: str) -> List[str]:
                     chunks.append(part)
                     part = header
                 part += "\n" + r
+            if title and cur.endswith(title):  # the heading already went into the table's fragments
+                cur = cur[: -len(title)].strip()
             if cur:
                 chunks.append(cur)
                 cur = ""
@@ -124,6 +156,37 @@ def terms(text: str) -> List[str]:
             continue
         out.append(w[:6] if len(w) > 6 else w)  # a rough stem: the first 6 letters
     return out
+
+
+def cosine(a, b) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a)) or 1.0
+    nb = math.sqrt(sum(y * y for y in b)) or 1.0
+    return dot / (na * nb)
+
+
+MIN_SIMILARITY = 0.45  # below this a fragment is not about the question
+
+
+def hybrid(question: str, chunks: List[Tuple[int, str]], k: int = 4, qvec=None, vecs=None) -> List[Tuple[float, int, str]]:
+    """Keyword search (BM25) plus search by meaning (embeddings), merged by rank.
+    Without embeddings it is plain BM25. vecs: {chunk id: vector}."""
+    by_words = search(question, chunks, k=k * 2)
+    if not qvec or not vecs:
+        return by_words[:k]
+    texts = dict(chunks)
+    sims = sorted(((cosine(qvec, v), cid) for cid, v in vecs.items() if cid in texts), reverse=True)
+    by_meaning = [(s, cid) for s, cid in sims[:k * 2] if s >= MIN_SIMILARITY]
+    if by_meaning:
+        best = by_meaning[0][0]
+        by_meaning = [(s, cid) for s, cid in by_meaning if s >= best - 0.12]  # keep only the close ones
+    score = {}
+    for rank, (_, cid, _) in enumerate(by_words):
+        score[cid] = score.get(cid, 0) + 1 / (60 + rank)
+    for rank, (_, cid) in enumerate(by_meaning):
+        score[cid] = score.get(cid, 0) + 1 / (60 + rank)
+    merged = sorted(score.items(), key=lambda x: -x[1])[:k]
+    return [(s, cid, texts[cid]) for cid, s in merged]
 
 
 def search(question: str, chunks: List[Tuple[int, str]], k: int = 4) -> List[Tuple[float, int, str]]:

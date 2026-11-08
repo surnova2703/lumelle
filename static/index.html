@@ -256,6 +256,19 @@
   .doc-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .doc-row .meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .doc-row button { border: 1px solid var(--line); background: none; color: #C2410C; border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .docs-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .docs-pick[hidden] { display: none; }
+  .docs-pick select, .doc-bar select, .doc-row select { font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; max-width: 180px; }
+  .docs-pick select[hidden], #strictLbl[hidden] { display: none; }
+  .doc-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; }
+  .doc-bar label { display: flex; align-items: center; gap: 8px; }
+  .doc-bar select { font-size: 14px; padding: 6px 8px; max-width: 240px; }
+  .doc-row select { max-width: 130px; }
+  .doc-sem { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .doc-sem:empty { display: none; }
+  .doc-sem code { display: inline-block; margin-top: 4px; padding: 2px 6px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); user-select: all; }
+  .doc-sem.on { color: var(--ink); }
+  @media (max-width: 560px) { .doc-row { flex-wrap: wrap; } .doc-row .nm { flex-basis: 100%; } }
   .doc-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 14px; }
   .doc-drop { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px; border: 2px dashed var(--line); border-radius: 14px; cursor: pointer; text-align: center; color: var(--muted); font-size: 13px; }
   .doc-drop b { color: var(--ink); font-size: 15px; }
@@ -514,9 +527,11 @@
     <button class="icon-btn close-x" id="docsClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h3 id="docsTitle" data-i18n="docsTitle"></h3>
     <p data-i18n="docsSub"></p>
+    <div class="doc-bar"><label><span data-i18n="colLabel"></span> <select id="docColSel"></select></label></div>
     <div class="doc-list" id="docList"></div>
-    <label class="doc-drop" id="docDrop"><input type="file" id="docFile" accept=".docx,.pdf,.txt,.md,.csv" multiple hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg><b data-i18n="docsUpload"></b><span data-i18n="docsTypes"></span></label>
+    <label class="doc-drop" id="docDrop"><input type="file" id="docFile" accept=".docx,.pdf,.xlsx,.xlsm,.txt,.md,.csv" multiple hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg><b data-i18n="docsUpload"></b><span data-i18n="docsTypes"></span></label>
     <div class="pw-msg" id="docMsg"></div>
+    <div class="doc-sem" id="docSem"></div>
   </div>
 </div>
 <div class="chooser" id="cmdDlg" role="dialog" aria-modal="true" aria-labelledby="cmdTitle">
@@ -581,7 +596,7 @@
       <button class="send" id="send" type="submit"><span class="send-label" data-i18n="send"></span><svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
     </form>
     <div class="options">
-      <span class="opt-left"><label><input type="checkbox" id="think"> <span data-i18n="think"></span></label><label id="useDocsLbl" hidden><input type="checkbox" id="useDocs"> <span data-i18n="useDocs"></span></label><label><input type="checkbox" id="speakToggle"> <span data-i18n="readAloud"></span></label></span>
+      <span class="opt-left"><label><input type="checkbox" id="think"> <span data-i18n="think"></span></label><span id="useDocsLbl" class="docs-pick" hidden><label><input type="checkbox" id="useDocs"> <span data-i18n="useDocs"></span></label><select id="docsCol" hidden></select><label id="strictLbl"><input type="checkbox" id="strictDocs"> <span data-i18n="strictDocs"></span></label></span><label><input type="checkbox" id="speakToggle"> <span data-i18n="readAloud"></span></label></span>
       <span class="opt-right"><label class="model-pick" id="modelPick" hidden><span data-i18n="modelLabel"></span> <select id="modelSel"></select></label><span class="offline" data-i18n="offline"></span></span>
     </div>
   </div>
@@ -605,7 +620,7 @@ const STRINGS = {
     attach: "Прикрепить картинку (или вставь скриншот: {paste})", tooMany: "Можно прикрепить не больше 4 картинок", removeImg: "Убрать",
     close: "Закрыть", prev: "Предыдущий слайд", next: "Следующий слайд", slide: "Слайд",
     hints: {
-      chat: "Чем помочь? Задай любой вопрос или выбери режим сверху: тексты, перевод, презентации или изучение языков.",
+      chat: "Чем помочь? Задай любой вопрос или выбери режим сверху: тексты, перевод, презентации, языки или наука (диссертация).",
       write: "Опиши, какой текст нужен: письмо, пост, эссе. Укажи тон и длину.",
       translate: "Вставь текст. Без указаний: русский → английский, остальное → русский. Нужен другой язык — напиши, например, «на испанский: …».",
       slides: "Напиши тему — я сделаю презентацию: план слайдов, речь в заметках и файл PowerPoint.",
@@ -632,7 +647,7 @@ const STRINGS = {
     attach: "Attach an image (or paste a screenshot: {paste})", tooMany: "You can attach up to 4 images", removeImg: "Remove",
     close: "Close", prev: "Previous slide", next: "Next slide", slide: "Slide",
     hints: {
-      chat: "How can I help? Ask me anything, or pick a mode at the top: writing, translation, slides or language learning.",
+      chat: "How can I help? Ask me anything, or pick a mode at the top: writing, translation, slides, languages or science (thesis work).",
       write: "Describe the text you need: an email, a post, an essay. Add the tone and length.",
       translate: "Paste a text. By default Russian → English and everything else → Russian. For another language write, for example, “to Spanish: …”.",
       slides: "Give me a topic and I’ll make a presentation: a slide plan, speaker notes and a PowerPoint file.",
@@ -659,7 +674,7 @@ const STRINGS = {
     attach: "添加图片（或粘贴截图：{paste}）", tooMany: "最多可添加 4 张图片", removeImg: "移除",
     close: "关闭", prev: "上一张", next: "下一张", slide: "幻灯片",
     hints: {
-      chat: "有什么可以帮你？随便问我，或在上方选择模式：写作、翻译、演示文稿或语言学习。",
+      chat: "有什么可以帮你？随便问我，或在上方选择模式：写作、翻译、演示文稿、语言学习或科研（论文）。",
       write: "描述你需要的文字：邮件、帖子、文章。写明语气和长度。",
       translate: "粘贴文本。默认：中文 → 英文，其他语言 → 中文。需要其他语言，请写，例如“译成西班牙语：…”。",
       slides: "告诉我主题，我会做一份演示文稿：幻灯片提纲、演讲备注和 PowerPoint 文件。",
@@ -686,7 +701,7 @@ const STRINGS = {
     attach: "Joindre une image (ou coller une capture : {paste})", tooMany: "4 images maximum", removeImg: "Retirer",
     close: "Fermer", prev: "Diapositive précédente", next: "Diapositive suivante", slide: "Diapositive",
     hints: {
-      chat: "Comment puis-je vous aider ? Posez votre question ou choisissez un mode en haut : rédaction, traduction, présentations ou langues.",
+      chat: "Comment puis-je vous aider ? Posez votre question ou choisissez un mode en haut : rédaction, traduction, présentations, langues ou recherche (mémoire).",
       write: "Décrivez le texte voulu : e-mail, post, essai. Précisez le ton et la longueur.",
       translate: "Collez un texte. Par défaut : français → anglais, autres langues → français. Pour une autre langue, écrivez par exemple « en espagnol : … ».",
       slides: "Donnez-moi un sujet : je prépare une présentation avec le plan des diapositives, les notes de l’orateur et un fichier PowerPoint.",
@@ -713,7 +728,7 @@ const STRINGS = {
     attach: "Bild anhängen (oder Screenshot einfügen: {paste})", tooMany: "Höchstens 4 Bilder", removeImg: "Entfernen",
     close: "Schließen", prev: "Vorherige Folie", next: "Nächste Folie", slide: "Folie",
     hints: {
-      chat: "Wie kann ich helfen? Frag mich etwas oder wähle oben einen Modus: Schreiben, Übersetzen, Präsentationen oder Sprachenlernen.",
+      chat: "Wie kann ich helfen? Frag mich etwas oder wähle oben einen Modus: Schreiben, Übersetzen, Präsentationen, Sprachen oder Forschung (Abschlussarbeit).",
       write: "Beschreibe den gewünschten Text: E-Mail, Post, Aufsatz. Nenne Ton und Länge.",
       translate: "Füge einen Text ein. Standard: Deutsch → Englisch, andere Sprachen → Deutsch. Für eine andere Sprache schreib z. B. „auf Spanisch: …“.",
       slides: "Nenne ein Thema – ich erstelle eine Präsentation: Folienplan, Sprechernotizen und eine PowerPoint-Datei.",
@@ -775,6 +790,34 @@ Object.assign(STRINGS.de, {
   cmdTip: "Tippe „/“, um einen Befehl zu wählen",
 });
 STRINGS.de.hints.science = "Ein Forschungsassistent für deine Abschlussarbeit: Er stützt sich auf deine Dokumente und erfindet nie Quellen. Tippe „/“ ins Nachrichtenfeld oder wähle einen Befehl:";
+// База знаний: папки, «только по документам», поиск по смыслу
+Object.assign(STRINGS.ru, { colLabel: "Папка", colAll: "Все папки", colNone: "Без папки", colNew: "+ Новая папка…", colPrompt: "Название папки, например: Диссертация", strictDocs: "Только по ним",
+  semOn: "🧠 Поиск по смыслу включён: находит нужное, даже если в вопросе другие слова.", semPrep: "Готовлю фрагментов: {n}…",
+  semOff: "Сейчас поиск идёт по словам. Чтобы искать по смыслу, один раз скачай модель (нужен интернет, ~0,6 ГБ) — вставь в Терминал:",
+  docsTypes: ".docx, .pdf, .xlsx, .txt, .md, .csv — до 15 МБ. Можно перетащить сюда.", docErrType: "Такой формат не поддерживается: нужен .docx, .pdf, .xlsx, .txt, .md или .csv" });
+Object.assign(STRINGS.en, { colLabel: "Folder", colAll: "All folders", colNone: "No folder", colNew: "+ New folder…", colPrompt: "Folder name, for example: Thesis", strictDocs: "Only from them",
+  semOn: "🧠 Search by meaning is on: it finds the right part even if your question uses other words.", semPrep: "Preparing parts: {n}…",
+  semOff: "Search works by words now. To search by meaning, download the model once (internet needed, ~0.6 GB) — paste into Terminal:",
+  docsTypes: ".docx, .pdf, .xlsx, .txt, .md, .csv — up to 15 MB. You can drop files here.", docErrType: "This format is not supported: use .docx, .pdf, .xlsx, .txt, .md or .csv" });
+Object.assign(STRINGS.zh, { colLabel: "文件夹", colAll: "全部文件夹", colNone: "未分类", colNew: "+ 新建文件夹…", colPrompt: "文件夹名称，例如：论文", strictDocs: "仅依据文档",
+  semOn: "🧠 语义搜索已开启：即使提问用词不同，也能找到相关内容。", semPrep: "正在处理片段：{n}…",
+  semOff: "目前按关键词搜索。要按语义搜索，请下载一次模型（需联网，约 0.6 GB），在终端中粘贴：",
+  docsTypes: ".docx、.pdf、.xlsx、.txt、.md、.csv，最大 15 MB。也可以拖到这里。", docErrType: "不支持此格式：请使用 .docx、.pdf、.xlsx、.txt、.md 或 .csv" });
+Object.assign(STRINGS.fr, { colLabel: "Dossier", colAll: "Tous les dossiers", colNone: "Sans dossier", colNew: "+ Nouveau dossier…", colPrompt: "Nom du dossier, par exemple : Mémoire", strictDocs: "Uniquement d’après eux",
+  semOn: "🧠 La recherche par le sens est activée : elle trouve le bon passage même avec d’autres mots.", semPrep: "Préparation des fragments : {n}…",
+  semOff: "La recherche se fait par mots. Pour chercher par le sens, téléchargez le modèle une fois (internet requis, ~0,6 Go) — collez dans le Terminal :",
+  docsTypes: ".docx, .pdf, .xlsx, .txt, .md, .csv — jusqu’à 15 Mo. Vous pouvez les déposer ici.", docErrType: "Format non pris en charge : utilisez .docx, .pdf, .xlsx, .txt, .md ou .csv" });
+Object.assign(STRINGS.de, { colLabel: "Ordner", colAll: "Alle Ordner", colNone: "Ohne Ordner", colNew: "+ Neuer Ordner…", colPrompt: "Ordnername, zum Beispiel: Abschlussarbeit", strictDocs: "Nur daraus",
+  semOn: "🧠 Suche nach Bedeutung ist an: Sie findet die passende Stelle auch mit anderen Wörtern.", semPrep: "Teile werden vorbereitet: {n}…",
+  semOff: "Gesucht wird gerade nach Wörtern. Für die Suche nach Bedeutung lade das Modell einmal herunter (Internet nötig, ~0,6 GB) — im Terminal einfügen:",
+  docsTypes: ".docx, .pdf, .xlsx, .txt, .md, .csv — bis 15 MB. Du kannst Dateien hierher ziehen.", docErrType: "Dieses Format wird nicht unterstützt: .docx, .pdf, .xlsx, .txt, .md oder .csv" });
+
+// Названия вкладок режимов на языке интерфейса
+STRINGS.ru.modeNames = { chat: "Чат", write: "Тексты", translate: "Перевод", slides: "Слайды", learn: "Языки", science: "Наука" };
+STRINGS.en.modeNames = { chat: "Chat", write: "Write", translate: "Translate", slides: "Slides", learn: "Learn", science: "Science" };
+STRINGS.zh.modeNames = { chat: "聊天", write: "写作", translate: "翻译", slides: "幻灯片", learn: "学语言", science: "科研" };
+STRINGS.fr.modeNames = { chat: "Discussion", write: "Rédaction", translate: "Traduction", slides: "Diapos", learn: "Langues", science: "Recherche" };
+STRINGS.de.modeNames = { chat: "Chat", write: "Schreiben", translate: "Übersetzen", slides: "Folien", learn: "Sprachen", science: "Forschung" };
 // Built-in commands: Russian names in the Russian interface, English names elsewhere (both always work)
 const BUILTIN_CMDS = [["plan", "план"], ["review", "обзор"], ["test", "тест"], ["edit", "редактура"]];
 const cmdName = (pair) => (lang === "ru" ? pair[1] : pair[0]);
@@ -798,6 +841,8 @@ function applyLang() {
   $("input").placeholder = window.matchMedia("(max-width: 760px)").matches ? t("placeholderShort") : t("placeholder");
   $("langSel").value = lang;
   $("loginLang").value = lang;
+  document.querySelectorAll("#modes button").forEach((b) => { b.textContent = t("modeNames")[b.dataset.mode]; });
+  if (typeof me !== "undefined" && me && typeof loadDocs === "function") loadDocs();  // названия «Все папки» и т. п.
   if (typeof me !== "undefined" && me) $("meRole").textContent = t(me.role === "admin" ? "roleAdmin" : me.role === "guest" ? "roleGuest" : "roleUser");
   if (!state.current) $("chatTitle").textContent = t("newChatTitle");
   const welcome = document.querySelector(".welcome");
@@ -873,7 +918,7 @@ function renderChatList() {
   for (const chat of state.chats) {
     const li = document.createElement("li");
     li.className = "chat-item" + (state.current && chat.id === state.current.id ? " active" : "");
-    li.innerHTML = `<span class="title"></span><span class="tag">${chat.mode}</span><button class="del" title="${t("del")}">×</button>`;
+    li.innerHTML = `<span class="title"></span><span class="tag">${escapeHtml((t("modeNames") || {})[chat.mode] || chat.mode)}</span><button class="del" title="${t("del")}">×</button>`;
     li.querySelector(".title").textContent = chat.title;
     li.onclick = () => openChat(chat.id);
     li.querySelector(".del").onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
@@ -992,7 +1037,7 @@ async function send(text, images = []) {
     }
     const res = await api(`/chats/${state.current.id}/ask`, {
       method: "POST",
-      body: { text, images, think: $("think").checked, ui_lang: lang, use_docs: !$("useDocsLbl").hidden && $("useDocs").checked },
+      body: { text, images, think: $("think").checked, ui_lang: lang, ...docsRequest() },
     });
     typing.remove();
     const answerDiv = addMessage("assistant", res.answer);
@@ -1574,18 +1619,78 @@ function docErr(err) {
   const c = err.detail && err.detail.code;
   return { doc_type: t("docErrType"), doc_big: t("docErrBig"), doc_read: t("docErrRead"), doc_empty: t("docErrEmpty") }[c] || err.message;
 }
+const ALL = "__all", NEW = "__new";
+let docFolder = ALL;  // папка, открытая в окне «Документы»
+function folders() { return [...new Set(docsCache.map((d) => d.collection).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function folderOptions(withAll, withNew, selected) {
+  const hasLoose = docsCache.some((d) => !d.collection);
+  const opts = (withAll ? [[ALL, t("colAll")]] : []).concat(folders().map((f) => [f, f]))
+    .concat(hasLoose || !withAll ? [["", t("colNone")]] : []).concat(withNew ? [[NEW, t("colNew")]] : []);
+  return opts.map(([v, l]) => `<option value="${escapeHtml(v)}"${v === selected ? " selected" : ""}>${escapeHtml(l)}</option>`).join("");
+}
+function askFolder() {
+  const name = (prompt(t("colPrompt")) || "").trim().replace(/\s+/g, " ").slice(0, 60);
+  return name || null;
+}
 async function loadDocs() {
   try { docsCache = await api("/documents"); } catch (e) { docsCache = []; }
   $("docsBtn").hidden = !me;
   $("docsCount").textContent = docsCache.length || "";
   $("useDocsLbl").hidden = !docsCache.length;
-  $("docList").innerHTML = docsCache.length
-    ? docsCache.map((d) => `<div class="doc-row" data-doc="${d.id}"><span class="nm" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span><span class="meta">${t("docsParts").replace("{n}", d.parts)}</span><button data-del-doc="${d.id}">${t("delUser")}</button></div>`).join("")
+  // выбор папки внизу экрана — только если папки есть
+  const fs = folders();
+  let pick = "";
+  try { pick = localStorage.getItem("lumelle-docs-col") ?? ALL; } catch (e) { pick = ALL; }
+  if (pick !== ALL && pick !== "" && !fs.includes(pick)) pick = ALL;
+  $("docsCol").innerHTML = folderOptions(true, false, pick);
+  $("docsCol").hidden = !fs.length;
+  $("strictLbl").hidden = !$("useDocs").checked;
+  renderDocList();
+}
+function renderDocList() {
+  const known = folders();
+  const opts = folderOptions(true, true, docFolder);
+  $("docColSel").innerHTML = docFolder !== ALL && docFolder !== "" && !known.includes(docFolder)
+    ? opts.replace(`<option value="${NEW}"`, `<option value="${escapeHtml(docFolder)}" selected>${escapeHtml(docFolder)}</option><option value="${NEW}"`) : opts;
+  const list = docsCache.filter((d) => docFolder === ALL || d.collection === docFolder);
+  $("docList").innerHTML = list.length
+    ? list.map((d) => `<div class="doc-row" data-doc="${d.id}"><span class="nm" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span>` +
+        `<select data-move="${d.id}" title="${t("colLabel")}">${folderOptions(false, true, d.collection)}</select>` +
+        `<span class="meta">${t("docsParts").replace("{n}", d.parts)}</span><button data-del-doc="${d.id}">${t("delUser")}</button></div>`).join("")
     : `<div class="doc-empty">${t("docsEmpty")}</div>`;
 }
+async function loadDocStatus() {
+  let st;
+  try { st = await api("/documents/status"); } catch (e) { $("docSem").textContent = ""; return; }
+  const box = $("docSem");
+  box.classList.toggle("on", st.semantic);
+  box.innerHTML = st.semantic
+    ? escapeHtml(t("semOn")) + (st.missing ? " " + escapeHtml(t("semPrep").replace("{n}", st.missing)) : "")
+    : escapeHtml(t("semOff")) + `<br><code>ollama pull ${escapeHtml(st.model)}</code>`;
+}
+$("docColSel").onchange = async () => {
+  let v = $("docColSel").value;
+  if (v === NEW) { v = askFolder(); if (v === null) { renderDocList(); return; } }
+  docFolder = v; renderDocList();
+};
+$("docList").addEventListener("change", async (e) => {
+  const sel = e.target.closest("[data-move]"); if (!sel) return;
+  let v = sel.value;
+  if (v === NEW) { v = askFolder(); if (v === null) { renderDocList(); return; } }
+  try { await api(`/documents/${sel.dataset.move}`, { method: "PATCH", body: { collection: v } }); await loadDocs(); }
+  catch (err) { $("docMsg").textContent = err.message; }
+});
+$("docsCol").onchange = () => { try { localStorage.setItem("lumelle-docs-col", $("docsCol").value); } catch (e) {} };
+try { $("strictDocs").checked = localStorage.getItem("lumelle-docs-strict") === "1"; } catch (e) {}
+$("strictDocs").onchange = () => { try { localStorage.setItem("lumelle-docs-strict", $("strictDocs").checked ? "1" : "0"); } catch (e) {} };
+function docsRequest() {
+  const on = !$("useDocsLbl").hidden && $("useDocs").checked;
+  const col = $("docsCol").hidden ? ALL : $("docsCol").value;
+  return { use_docs: on, collection: on && col !== ALL ? col : null, strict_docs: on && $("strictDocs").checked };
+}
 try { $("useDocs").checked = localStorage.getItem("lumelle-docs") !== "0"; } catch (e) { $("useDocs").checked = true; }
-$("useDocs").onchange = () => { try { localStorage.setItem("lumelle-docs", $("useDocs").checked ? "1" : "0"); } catch (e) {} };
-$("docsBtn").onclick = () => { $("docMsg").textContent = ""; loadDocs(); $("docsDlg").classList.add("open"); };
+$("useDocs").onchange = () => { $("strictLbl").hidden = !$("useDocs").checked; try { localStorage.setItem("lumelle-docs", $("useDocs").checked ? "1" : "0"); } catch (e) {} };
+$("docsBtn").onclick = () => { $("docMsg").textContent = ""; loadDocs(); loadDocStatus(); $("docsDlg").classList.add("open"); };
 $("docsClose").onclick = () => $("docsDlg").classList.remove("open");
 $("docsDlg").addEventListener("click", async (e) => {
   if (e.target === $("docsDlg")) { $("docsDlg").classList.remove("open"); return; }
@@ -1598,7 +1703,7 @@ $("docsDlg").addEventListener("click", async (e) => {
 async function uploadDocs(files) {
   for (const f of files) {
     $("docMsg").textContent = t("docUploading") + " " + f.name;
-    const fd = new FormData(); fd.append("file", f, f.name);
+    const fd = new FormData(); fd.append("file", f, f.name); fd.append("collection", docFolder === ALL ? "" : docFolder);
     try {
       const res = await fetch("/documents", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
@@ -1609,6 +1714,7 @@ async function uploadDocs(files) {
     } catch (err) { $("docMsg").textContent = f.name + ": " + docErr(err); }
   }
   await loadDocs();
+  loadDocStatus();
 }
 $("docFile").onchange = () => { uploadDocs([...$("docFile").files]); $("docFile").value = ""; };
 ["dragenter", "dragover"].forEach((ev) => $("docDrop").addEventListener(ev, (e) => { e.preventDefault(); $("docDrop").classList.add("over"); }));

@@ -120,7 +120,7 @@ def main():
 
     src = HERE / "my_docs"
     src.mkdir(exist_ok=True)
-    files = sorted(p for p in src.iterdir() if p.suffix.lower() in (".docx", ".pdf", ".txt", ".md"))
+    files = sorted(p for p in src.iterdir() if p.suffix.lower() in (".docx", ".pdf", ".xlsx", ".txt", ".md"))
     if not files:
         print(f"Put your .docx / .pdf / .txt / .md files into {src} and run again.")
         return

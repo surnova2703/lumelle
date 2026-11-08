@@ -5,3 +5,4 @@ python-pptx
 python-multipart
 python-docx
 pypdf
+openpyxl>=3.1

@@ -79,8 +79,20 @@ While the default passwords are set, use `--lan` only on your home network or th
 
 ## Documents
 
-Press **Documents** on the left and upload .docx, .pdf, .txt or .md files (up to 15 MB). Turn on **From my documents** at the bottom: Lumelle looks for the answer in your files and shows where it comes from (📎 file — part number). The search works offline without an extra model; ask in the language the document is written in. Scanned PDFs without text can't be read. Only you see your documents.
+Press **Documents** on the left and upload .docx, .pdf, .xlsx, .txt or .md files (up to 15 MB). Turn on **From my documents** at the bottom: Lumelle looks for the answer in your files and shows where it comes from (📎 file — part number). The search works offline without an extra model; ask in the language the document is written in. Scanned PDFs without text can't be read. Only you see your documents.
 
+
+**Folders.** In the Documents window pick **Folder → + New folder…** and name it, for example “Thesis”. New files go into the open folder; move a file with the list next to its name. At the bottom of the screen, next to “From my documents”, choose which folder to search.
+
+**Only from documents.** Turn on **Only from them** at the bottom: Lumelle then answers only from your files and says so honestly when they don't contain the answer.
+
+**Excel.** .xlsx files are read sheet by sheet, each row as “cell | cell”. Formulas give the value Excel saved last.
+
+**Search by meaning.** Without it the search works by words. To find the right part even when your question uses other words, download the model once (internet needed, ~0.6 GB):
+```
+ollama pull qwen3-embedding:0.6b
+```
+After that it works offline, and files you uploaded earlier are prepared automatically (the Documents window shows how many parts are left).
 
 ## Science and “/” commands
 

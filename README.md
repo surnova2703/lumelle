@@ -14,7 +14,7 @@ Lumelle runs on Windows, macOS and Linux. It combines a local open-source langua
 - **Translate**: any language pair — name the target ("to Spanish: …"); by default Russian → English and everything else → Russian
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
-- **Documents**: upload .docx / .pdf / .txt / .md and turn on “From my documents”; Lumelle finds the relevant parts with offline keyword search (BM25, no extra model) and shows which file and part the answer comes from
+- **Documents**: a knowledge base with folders; upload .docx / .pdf / .xlsx / .txt / .md and turn on “From my documents”; Lumelle finds the relevant parts with offline keyword search (BM25) plus search by meaning when an embedding model is installed (`ollama pull qwen3-embedding:0.6b`); “Only from them” forbids answers from general knowledge and shows which file and part the answer comes from
 - **Science mode and “/” commands**: a research assistant that never invents sources; `/plan`, `/review`, `/test`, `/edit` (also in Russian: `/план`, `/обзор`, `/тест`, `/редактура`) and your own saved commands
 - **Model picker**: admin chooses which downloaded Ollama model answers (default `qwen3:8b`) and can switch back at any time
 - **Train your own model**: [`training/`](training/README.md) distils qwen3:8b into a small Qwen3‑1.7B with MLX LoRA on a Mac and adds it to Ollama as `lumelle-mini`
@@ -103,6 +103,8 @@ Phones and tablets (iPhone, Android) open Lumelle in the browser when the comput
 | `POST` | `/me/password` | Change your own password |
 | `GET` | `/documents` | My documents |
 | `POST` | `/documents` | Upload a document (multipart `file`) |
+| `PATCH` | `/documents/{id}` | Move a document to another folder (`collection`) |
+| `GET` | `/documents/status` | Is search by meaning available |
 | `DELETE` | `/documents/{id}` | Delete a document |
 | `GET` | `/commands` | Built-in and my own “/” commands |
 | `POST` | `/commands` | Save my own command (`name`, `prompt`) |

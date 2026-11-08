@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import time
+from array import array
 from datetime import datetime
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -18,7 +19,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from docs_search import extract_text, search, split_chunks
+from docs_search import extract_text, hybrid, split_chunks
 from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
 
 # Настройки можно поменять переменными окружения (удобно для слабых компьютеров):
@@ -32,6 +33,12 @@ KEEP_ALIVE = os.environ.get("LUMELLE_KEEP_ALIVE", "30m")
 # Распознавание речи (кнопка 🎤): локальная модель Whisper. tiny / base / small / medium:
 # чем больше, тем точнее и медленнее. small (~0,5 ГБ) хорошо понимает русский.
 WHISPER_MODEL = os.environ.get("LUMELLE_WHISPER", "small")
+# Поиск по смыслу в документах: модель «эмбеддингов» в Ollama. Если она не скачана,
+# работает обычный поиск по словам. Скачать один раз (нужен интернет): ollama pull qwen3-embedding:0.6b
+EMBED_MODEL = os.environ.get("LUMELLE_EMBED", "qwen3-embedding:0.6b")
+# Сколько текста модель видит за раз (в токенах). 8192 хватает на документы и историю чата;
+# Ollama по умолчанию даёт меньше и молча обрезает начало.
+NUM_CTX = int(os.environ.get("LUMELLE_CTX", "8192"))
 MAX_AUDIO_BYTES = 25_000_000  # ≈ несколько минут речи
 MAX_IMAGES = 4
 MAX_IMAGE_B64 = 8_000_000  # ≈6 МБ на картинку
@@ -211,6 +218,7 @@ async def warm_up_model():
         except httpx.HTTPError:
             pass  # Ollama не запущена — run.py уже подсказал, что делать
     asyncio.create_task(load())
+    asyncio.create_task(embed_missing())
 
 # Презентации о проекте (PDF из папки docs) открываются с начального экрана
 if (BASE_DIR / "docs").is_dir():
@@ -347,6 +355,12 @@ def init_db():
         cols = [r["name"] for r in conn.execute("PRAGMA table_info(users)")]
         if "must_change" not in cols:  # 1 = временный пароль, сменить при входе
             conn.execute("ALTER TABLE users ADD COLUMN must_change INTEGER NOT NULL DEFAULT 0")
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(documents)")]
+        if "collection" not in cols:  # папка в базе знаний: «Диссертация» и т. п.; '' = без папки
+            conn.execute("ALTER TABLE documents ADD COLUMN collection TEXT NOT NULL DEFAULT ''")
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(doc_chunks)")]
+        if "vec" not in cols:  # вектор «смысла» фрагмента для поиска по смыслу
+            conn.execute("ALTER TABLE doc_chunks ADD COLUMN vec BLOB")
         if not conn.execute("SELECT 1 FROM users").fetchone():  # первый запуск
             for name, role in (("admin", "admin"), ("guest", "guest")):
                 salt = secrets.token_hex(16)
@@ -393,7 +407,7 @@ async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_
         "stream": False,
         "think": think,
         "keep_alive": KEEP_ALIVE,
-        "options": {"temperature": TEMPERATURE[mode]},
+        "options": {"temperature": TEMPERATURE[mode], "num_ctx": NUM_CTX},
     }
     if fmt is not None:
         payload["format"] = fmt  # структурированный ответ (JSON по схеме)
@@ -458,6 +472,8 @@ class ChatMessage(BaseModel):
     images: List[str] = []
     ui_lang: Optional[str] = None
     use_docs: bool = False  # отвечать по документам пользователя
+    collection: Optional[str] = None  # только документы из этой папки (None — все)
+    strict_docs: bool = False  # отвечать только по документам, без общих знаний
 
 
 class ChatUpdate(BaseModel):
@@ -611,20 +627,96 @@ def delete_user(name: str, user: dict = Depends(admin_only)):
 # ---------- документы ----------
 
 MAX_DOC_BYTES = 15_000_000
-DOC_TYPES = (".docx", ".pdf", ".txt", ".md", ".csv")
+DOC_TYPES = (".docx", ".pdf", ".xlsx", ".xlsm", ".txt", ".md", ".csv")
 
 
-def docs_context(owner: str, question: str):
-    """Находит в документах пользователя фрагменты по вопросу → (текст для модели, подписи источников)."""
+# ---------- поиск по смыслу (эмбеддинги) ----------
+
+EMBED_URL = OLLAMA_URL.replace("/api/chat", "/api/embed")
+QUERY_PREFIX = "Instruct: Given a question, find the passages of the user's documents that answer it\nQuery: "
+_embed_state = {"ok": None, "checked": 0.0}
+
+
+async def embed(texts: List[str], query: bool = False):
+    """Векторы для текстов через Ollama; None — модель не скачана или Ollama недоступна."""
+    if not texts:
+        return []
+    if _embed_state["ok"] is False and time.time() - _embed_state["checked"] < 60:
+        return None  # недавно проверяли: модели нет — не ждём лишний раз
+    out = []
+    try:
+        async with httpx.AsyncClient(timeout=300) as client:
+            for i in range(0, len(texts), 16):
+                part = [(QUERY_PREFIX + t if query else t)[:6000] for t in texts[i:i + 16]]
+                r = await client.post(EMBED_URL, json={"model": EMBED_MODEL, "input": part, "keep_alive": KEEP_ALIVE})
+                if r.status_code >= 400:
+                    raise ValueError(r.text[:200])
+                out += r.json()["embeddings"]
+    except (httpx.HTTPError, ValueError, KeyError):
+        _embed_state.update(ok=False, checked=time.time())
+        return None
+    _embed_state.update(ok=True, checked=time.time())
+    return out
+
+
+def pack(vec) -> bytes:
+    return array("f", vec).tobytes()
+
+
+def unpack(blob: bytes):
+    a = array("f")
+    a.frombytes(blob)
+    return a
+
+
+_embed_lock = asyncio.Lock()
+
+
+async def embed_missing():
+    """Досчитываем векторы для новых фрагментов и для загруженных до того, как скачали модель."""
+    if _embed_lock.locked():
+        return
+    async with _embed_lock:
+        await _embed_missing()
+
+
+async def _embed_missing():
     with db() as conn:
-        rows = conn.execute(
-            "SELECT c.id, c.idx, c.text, d.name FROM doc_chunks c JOIN documents d ON d.id = c.doc_id WHERE d.owner = ?",
-            (owner,)).fetchall()
+        rows = conn.execute("SELECT id, text FROM doc_chunks WHERE vec IS NULL").fetchall()
+    for i in range(0, len(rows), 64):
+        part = rows[i:i + 64]
+        vecs = await embed([r["text"] for r in part])
+        if not vecs:
+            return
+        with db() as conn:
+            conn.executemany("UPDATE doc_chunks SET vec = ? WHERE id = ?", [(pack(v), r["id"]) for v, r in zip(vecs, part)])
+
+
+async def docs_context(owner: str, question: str, collection: Optional[str] = None, strict: bool = False, k: int = 4):
+    """Находит в документах пользователя фрагменты по вопросу → (текст для модели, подписи источников).
+    collection: только эта папка; strict: отвечать только по документам."""
+    sql = ("SELECT c.id, c.idx, c.text, c.vec, d.name FROM doc_chunks c JOIN documents d ON d.id = c.doc_id "
+           "WHERE d.owner = ?")
+    args = [owner]
+    if collection is not None:
+        sql += " AND d.collection = ?"
+        args.append(collection)
+    with db() as conn:
+        rows = conn.execute(sql, args).fetchall()
     if not rows:
         return "", []
     by_id = {r["id"]: r for r in rows}
-    found = search(question, [(r["id"], r["text"]) for r in rows], k=4)
+    vecs = {r["id"]: unpack(r["vec"]) for r in rows if r["vec"]}
+    qvec = None
+    if vecs:
+        got = await embed([question], query=True)
+        qvec = got[0] if got else None
+    found = hybrid(question, [(r["id"], r["text"]) for r in rows], k=k, qvec=qvec, vecs=vecs)
     if not found:
+        if strict:
+            return ("\n\nThe user asked to answer ONLY from their documents, and nothing relevant was found in them. "
+                    "Say clearly that the documents don't contain this, do NOT answer from general knowledge, "
+                    "and suggest uploading the right file or asking with the words used in the documents."), []
         return ("\n\nThe user asked to answer from their documents, but nothing relevant was found in them. "
                 "Say so briefly, then answer from general knowledge and mark that part as not from the documents."), []
     parts, used = [], {}
@@ -633,10 +725,14 @@ def docs_context(owner: str, question: str):
         parts.append(f"[{n}] {r['name']}, part {r['idx'] + 1}:\n{text}")
         used.setdefault(r["name"], []).append(r["idx"] + 1)
     sources = [f"{name} — {', '.join(str(i) for i in sorted(idx))}" for name, idx in used.items()]
-    context = ("\n\nAnswer using the excerpts from the user's own documents below. They are the user's "
-               "materials and take priority over general knowledge. Tables are written as «cell | cell». "
-               "If an answer is marked as disputed («спорно»), say so. If the excerpts do not contain the answer, "
-               "say that the documents don't cover it and only then use general knowledge.\n\n" + "\n\n".join(parts))
+    rule = ("Use ONLY these excerpts. If they answer only part of the question, answer that part and say exactly what "
+            "is missing in the documents. Do not add facts from general knowledge."
+            if strict else
+            "They take priority over general knowledge. If the excerpts do not contain the answer, say that the "
+            "documents don't cover it and only then use general knowledge, marked as such.")
+    context = ("\n\nAnswer using the excerpts from the user's own documents below, and refer to them as [1], [2] … "
+               "Tables are written as «cell | cell»; «Лист:» is a spreadsheet sheet. If an answer is marked as disputed "
+               "(«спорно»), say so. " + rule + "\n\n" + "\n\n".join(parts))
     return context, sources
 
 
@@ -644,14 +740,40 @@ def docs_context(owner: str, question: str):
 def list_documents(user: dict = Depends(current_user)):
     with db() as conn:
         rows = conn.execute(
-            "SELECT d.id, d.name, d.chars, d.created_at, COUNT(c.id) AS parts FROM documents d "
+            "SELECT d.id, d.name, d.chars, d.created_at, d.collection, COUNT(c.id) AS parts, "
+            "COUNT(c.vec) AS parts_ready FROM documents d "
             "LEFT JOIN doc_chunks c ON c.doc_id = d.id WHERE d.owner = ? GROUP BY d.id ORDER BY d.id DESC",
             (user["name"],)).fetchall()
     return [dict(r) for r in rows]
 
 
-@app.post("/documents", summary="Загрузить документ (.docx, .pdf, .txt, .md)")
-async def upload_document(file: UploadFile = File(...), user: dict = Depends(current_user)):
+def clean_collection(name: str) -> str:
+    name = " ".join((name or "").split())[:60]
+    if any(c in name for c in "<>\"/\\"):
+        raise HTTPException(status_code=400, detail={"code": "col_name"})
+    return name
+
+
+@app.get("/documents/status", summary="Работает ли поиск по смыслу")
+async def documents_status(user: dict = Depends(current_user)):
+    try:
+        models = await ollama_models()
+    except (httpx.HTTPError, ValueError):
+        models = []
+    installed = EMBED_MODEL in models or (":" not in EMBED_MODEL and EMBED_MODEL + ":latest" in models)
+    with db() as conn:
+        missing = conn.execute("SELECT COUNT(*) FROM doc_chunks c JOIN documents d ON d.id = c.doc_id "
+                               "WHERE d.owner = ? AND c.vec IS NULL", (user["name"],)).fetchone()[0]
+    if installed and missing:
+        _embed_state["ok"] = None
+        asyncio.create_task(embed_missing())
+    return {"semantic": installed, "model": EMBED_MODEL, "missing": missing}
+
+
+@app.post("/documents", summary="Загрузить документ (.docx, .pdf, .xlsx, .txt, .md)")
+async def upload_document(file: UploadFile = File(...), collection: str = Form(""),
+                          user: dict = Depends(current_user)):
+    collection = clean_collection(collection)
     name = Path(file.filename or "document").name[:120]
     if not name.lower().endswith(DOC_TYPES):
         raise HTTPException(status_code=400, detail={"code": "doc_type"})
@@ -666,11 +788,27 @@ async def upload_document(file: UploadFile = File(...), user: dict = Depends(cur
     if not chunks:
         raise HTTPException(status_code=400, detail={"code": "doc_empty"})
     with db() as conn:
-        cur = conn.execute("INSERT INTO documents (owner, name, chars, created_at) VALUES (?, ?, ?, ?)",
-                           (user["name"], name, len(text), now()))
+        cur = conn.execute("INSERT INTO documents (owner, name, chars, created_at, collection) VALUES (?, ?, ?, ?, ?)",
+                           (user["name"], name, len(text), now(), collection))
         conn.executemany("INSERT INTO doc_chunks (doc_id, idx, text) VALUES (?, ?, ?)",
                          [(cur.lastrowid, i, c) for i, c in enumerate(chunks)])
-    return {"id": cur.lastrowid, "name": name, "parts": len(chunks)}
+    asyncio.create_task(embed_missing())  # векторы считаются в фоне, загрузка не ждёт
+    return {"id": cur.lastrowid, "name": name, "parts": len(chunks), "collection": collection}
+
+
+class DocMove(BaseModel):
+    collection: str = ""
+
+
+@app.patch("/documents/{doc_id}", summary="Переложить документ в другую папку")
+def move_document(doc_id: int, req: DocMove, user: dict = Depends(current_user)):
+    collection = clean_collection(req.collection)
+    with db() as conn:
+        cur = conn.execute("UPDATE documents SET collection = ? WHERE id = ? AND owner = ?",
+                           (collection, doc_id, user["name"]))
+        if not cur.rowcount:
+            raise HTTPException(status_code=404, detail="Document not found")
+    return {"id": doc_id, "collection": collection}
 
 
 @app.delete("/documents/{doc_id}", summary="Удалить документ")
@@ -906,7 +1044,10 @@ async def ask_in_chat(chat_id: int, req: ChatMessage, user: dict = Depends(curre
         current["images"] = req.images
     messages.append(current)
 
-    context, sources = docs_context(user["name"], question) if req.use_docs and question else ("", [])
+    context, sources = ("", [])
+    if req.use_docs and question:
+        k = 8 if command and command[0] == COMMANDS["review"]["prompt"] else 4  # обзору нужно больше источников
+        context, sources = await docs_context(user["name"], question, req.collection, req.strict_docs, k)
     answer = await answer_for(mode, messages, req.think, req.ui_lang, context)
     if sources and mode != "slides":
         answer += "\n\n📎 " + "; ".join(sources)
