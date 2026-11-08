@@ -928,7 +928,7 @@ async def list_models(user: dict = Depends(current_user)):
         for pid, p in cloud.PROVIDERS.items():
             m = setting(f"cloud_model_{pid}")
             if setting(f"cloud_key_{pid}") and m:
-                online.append({"name": f"cloud:{pid}", "label": f"{p['label']} · {m}"})
+                online.append({"name": f"cloud:{pid}", "label": f"{p['label']} · {cloud.yandex_short(m)}"})
     return {"models": text_models, "online": online, "current": current_model(), "default": MODEL}
 
 
@@ -961,6 +961,7 @@ class CloudSettings(BaseModel):
     provider: str
     key: Optional[str] = None    # None — не менять; "" — удалить ключ
     model: Optional[str] = None
+    folder: Optional[str] = None  # YandexGPT: ID каталога
 
 
 @app.get("/cloud", summary="Онлайн-модели: какие ключи добавлены (только admin)")
@@ -992,6 +993,10 @@ async def save_cloud(req: CloudSettings, user: dict = Depends(admin_only)):
     models = None
     if req.key is not None:
         key = req.key.strip()
+        if pid == "yandex" and key:
+            if not (req.folder or "").strip():
+                raise HTTPException(status_code=400, detail="YandexGPT: enter the folder ID too")
+            key = f"{req.folder.strip()}|{key}"
         if not key:  # удалить ключ; если эта модель была выбрана — вернуться к локальной
             set_setting(f"cloud_key_{pid}", None)
             set_setting(f"cloud_model_{pid}", None)

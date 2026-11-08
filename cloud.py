@@ -1,4 +1,4 @@
-"""Online models by the owner's own API keys: GigaChat (Sber), Claude (Anthropic), ChatGPT (OpenAI), Perplexity.
+"""Online models by the owner's own API keys: GigaChat (Sber), YandexGPT (Yandex AI Studio), Claude (Anthropic), ChatGPT (OpenAI), Perplexity.
 
 They are optional: Lumelle works offline without them. When one is chosen, the question, the chat
 history and the excerpts from the documents are sent to that company over the internet.
@@ -14,6 +14,7 @@ import httpx
 
 PROVIDERS = {
     "gigachat": {"label": "GigaChat", "keys_url": "https://developers.sber.ru/docs/ru/gigachat/individuals-quickstart"},
+    "yandex": {"label": "YandexGPT", "keys_url": "https://aistudio.yandex.ru/docs/ru/ai-studio/quickstart/"},
     "anthropic": {"label": "Claude", "keys_url": "https://console.anthropic.com/settings/keys"},
     "openai": {"label": "ChatGPT", "keys_url": "https://platform.openai.com/api-keys"},
     "perplexity": {"label": "Perplexity", "keys_url": "https://www.perplexity.ai/account/api"},
@@ -57,6 +58,39 @@ async def _giga_token(client: httpx.AsyncClient, key: str) -> str:
     exp = exp / 1000 if exp > 1e11 else (exp or time.time() + 1500)
     _giga_tokens[key] = (token, exp)
     return token
+
+
+# YandexGPT: the stored key is "<folder ID>|<API key>" (both come from Yandex AI Studio)
+YANDEX_MODELS = "https://ai.api.cloud.yandex.net/v1/models"
+YANDEX_CHAT = "https://llm.api.cloud.yandex.net/v1/chat/completions"
+
+
+def _yandex_parts(key: str):
+    folder, _, api_key = key.partition("|")
+    if not folder or not api_key:
+        raise CloudError("YandexGPT: both the folder ID and the API key are needed")
+    return folder.strip(), api_key.strip()
+
+
+async def _yandex(method: str, url: str, key: str, json_body=None) -> dict:
+    folder, api_key = _yandex_parts(key)
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            r = None
+            for auth in (f"Api-Key {api_key}", f"Bearer {api_key}"):
+                r = await client.request(method, url, json=json_body, headers={
+                    "Authorization": auth, "x-project": folder, "x-folder-id": folder, "OpenAI-Project": folder})
+                if r.status_code != 401:
+                    break
+            _check(r, "YandexGPT")
+            return r.json()
+    except httpx.HTTPError:
+        raise CloudError("YandexGPT: no connection — check the internet")
+
+
+def yandex_short(model_id: str) -> str:
+    """gpt://b1g…/yandexgpt/latest → yandexgpt/latest"""
+    return model_id.split("/", 3)[-1] if model_id.startswith("gpt://") else model_id
 
 
 async def _giga(method: str, path: str, key: str, json_body=None) -> dict:
@@ -105,6 +139,17 @@ async def list_models(provider: str, key: str) -> List[str]:
     label = PROVIDERS[provider]["label"]
     if provider == "perplexity":
         return PERPLEXITY_EFFORTS
+    if provider == "yandex":
+        folder, _ = _yandex_parts(key)
+        try:
+            data = await _yandex("GET", YANDEX_MODELS, key)
+            ids = [m.get("id", "") for m in data.get("data", [])]
+            ids = [i for i in ids if i.startswith("gpt://") and "speech" not in i]
+        except CloudError as e:
+            if "error 404" not in str(e):
+                raise
+            ids = []
+        return ids or [f"gpt://{folder}/{m}" for m in ("yandexgpt/latest", "yandexgpt-lite/latest", "yandexgpt/rc")]
     if provider == "gigachat":
         data = await _giga("GET", "/models", key)
         ids = [m.get("id", "") for m in data.get("data", [])]
@@ -129,7 +174,8 @@ def default_model(provider: str, models: List[str]) -> Optional[str]:
     """A sensible first choice: a balanced model, not the most expensive one."""
     if not models:
         return None
-    prefer = {"anthropic": ("sonnet",), "openai": ("mini",), "perplexity": ("fast",), "gigachat": ("2-Max", "Max", "Pro")}[provider]
+    prefer = {"anthropic": ("sonnet",), "openai": ("mini",), "perplexity": ("fast",), "gigachat": ("2-Max", "Max", "Pro"),
+              "yandex": ("/yandexgpt/latest", "/yandexgpt/", "yandexgpt")}[provider]
     for p in prefer:  # in the order of preference
         for m in models:
             if p in m:
@@ -167,6 +213,15 @@ async def ask(provider: str, key: str, model: str, system: str, messages: List[d
     """One answer from an online model. messages: [{role: user|assistant, content: str}]."""
     label = PROVIDERS[provider]["label"]
     msgs = [{"role": m["role"], "content": m["content"]} for m in messages if m.get("content")]
+    if provider == "yandex":
+        folder, _ = _yandex_parts(key)
+        if not model.startswith("gpt://"):
+            model = f"gpt://{folder}/{model}"
+        data = await _yandex("POST", YANDEX_CHAT, key,
+                             {"model": model, "messages": [{"role": "system", "content": system}] + msgs,
+                              "temperature": temperature, "max_tokens": 8000})
+        choices = data.get("choices") or [{}]
+        return (choices[0].get("message", {}).get("content") or "").strip()
     if provider == "gigachat":
         data = await _giga("POST", "/chat/completions", key,
                            {"model": model, "messages": [{"role": "system", "content": system}] + msgs,
