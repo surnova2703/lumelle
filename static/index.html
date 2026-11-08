@@ -333,7 +333,24 @@
     .viewer-bar a .long { display: none; }
   }
 
-  .composer { padding: 14px 24px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
+  .cmd-menu { position: absolute; left: 24px; right: 24px; bottom: calc(100% - 6px); z-index: 20; max-height: 320px; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,.18); padding: 6px; }
+  .cmd-menu[hidden] { display: none; }
+  .cmd-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 0; border-radius: 10px; background: none;
+    color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+  .cmd-item.on, .cmd-item:hover { background: var(--bg); }
+  .cmd-item b { min-width: 96px; font-weight: 700; }
+  .cmd-item .d { flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cmd-item .x { flex: none; border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 0 4px; cursor: pointer; }
+  .cmd-item .x:hover { color: #C2410C; }
+  .cmd-item.add { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; margin-top: 4px; }
+  .cmd-name { display: flex; align-items: center; gap: 6px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); margin-bottom: 10px; }
+  .cmd-name span { font-weight: 700; color: var(--muted); }
+  .cmd-name input { flex: 1; min-width: 0; padding: 12px 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 16px; outline: none; }
+  .cmd-prompt { resize: vertical; min-height: 120px; font-size: 14px; line-height: 1.45; }
+  .welcome .chip.cmd { font-family: inherit; }
+  @media (max-width: 760px) { .cmd-menu { left: 12px; right: 12px; } .cmd-item b { min-width: 0; } }
+  .composer { position: relative; padding: 14px 24px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
   .composer form { display: flex; gap: 10px; align-items: flex-end; }
   textarea {
     flex: 1; resize: none; max-height: 200px; min-height: 46px; padding: 12px 14px;
@@ -403,7 +420,9 @@
     .menu-btn, body.side-closed .menu-btn { display: grid; }
     header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); gap: 8px; }
     header h1 { font-size: 15px; }
-    .modes button { padding: 6px 9px; font-size: 13px; }
+    .modes { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .modes::-webkit-scrollbar { display: none; }
+    .modes button { flex: none; padding: 6px 9px; font-size: 13px; }
     .messages { padding: 16px 12px; }
     .composer { padding-left: 12px; padding-right: 12px; }
     .msg { max-width: 92%; }
@@ -500,6 +519,17 @@
     <div class="pw-msg" id="docMsg"></div>
   </div>
 </div>
+<div class="chooser" id="cmdDlg" role="dialog" aria-modal="true" aria-labelledby="cmdTitle">
+  <form class="chooser-box" id="cmdForm" style="width:min(520px,100%)">
+    <button type="button" class="icon-btn close-x" id="cmdClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="cmdTitle" data-i18n="cmdTitle"></h3>
+    <p data-i18n="cmdSub"></p>
+    <div class="cmd-name"><span>/</span><input id="cmdName" maxlength="32" autocomplete="off" data-i18n-ph="cmdNamePh"></div>
+    <textarea id="cmdPrompt" class="must-input cmd-prompt" rows="6" maxlength="4000" data-i18n-ph="cmdPromptPh"></textarea>
+    <div class="pw-msg" id="cmdMsg"></div>
+    <button class="must-go" data-i18n="save"></button>
+  </form>
+</div>
 <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
   <div class="chooser-box">
     <button class="icon-btn close-x" id="chClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -532,12 +562,14 @@
       <button data-mode="translate">Translate</button>
       <button data-mode="slides">Slides</button>
       <button data-mode="learn">Learn</button>
+      <button data-mode="science">Science</button>
     </div>
   </header>
 
   <div class="messages" id="messages"></div>
 
   <div class="composer">
+    <div class="cmd-menu" id="cmdMenu" role="listbox" hidden></div>
     <div class="thumbs" id="thumbs"></div>
     <form id="form">
       <label class="attach" id="attachBtn" data-i18n-title="attach">
@@ -697,6 +729,56 @@ const STRINGS = {
   },
 };
 
+// Режим «Наука» и команды «/…»
+Object.assign(STRINGS.ru, {
+  cmdDesc: { plan: "план диссертации или курсовой", review: "обзор литературы по моим документам", test: "разобрать тест с пошаговым объяснением", edit: "проверить текст как научный руководитель" },
+  cmdAdd: "Своя команда…", cmdAddDesc: "сохранить свою инструкцию", cmdOwn: "своя команда", cmdDel: "Удалить команду /{name}?",
+  cmdTitle: "Своя команда", cmdSub: "Напиши короткое имя и что Lumelle должна делать. Потом вводи в чате «/имя» и свой текст.",
+  cmdNamePh: "например, аннотация", cmdPromptPh: "Например: Напиши аннотацию к тексту ниже: 150–200 слов, научный стиль, цель, методы, результаты.",
+  cmdSaved: "Сохранена команда /{name}", cmdErr_cmd_name: "Имя: одно слово до 32 букв или цифр, без пробелов", cmdErr_cmd_taken: "Это имя занято встроенной командой", cmdErr_cmd_prompt: "Инструкция: от 5 до 4000 символов", cmdErr_cmd_many: "Можно сохранить до 50 команд",
+  cmdTip: "Введи «/», чтобы выбрать команду",
+});
+STRINGS.ru.hints.science = "Научный ассистент для диссертации: опирается на твои документы и не выдумывает источники. Введи «/» в поле сообщения или выбери команду:";
+Object.assign(STRINGS.en, {
+  cmdDesc: { plan: "plan a thesis or term paper", review: "literature review from my documents", test: "go through a test step by step", edit: "review a text like a supervisor" },
+  cmdAdd: "Your own command…", cmdAddDesc: "save your own instruction", cmdOwn: "your command", cmdDel: "Delete the command /{name}?",
+  cmdTitle: "Your own command", cmdSub: "Give it a short name and say what Lumelle should do. Then type “/name” and your text in the chat.",
+  cmdNamePh: "for example, abstract", cmdPromptPh: "For example: Write an abstract of the text below: 150–200 words, academic style, aim, methods, results.",
+  cmdSaved: "Saved the command /{name}", cmdErr_cmd_name: "Name: one word, up to 32 letters or digits, no spaces", cmdErr_cmd_taken: "This name belongs to a built-in command", cmdErr_cmd_prompt: "Instruction: 5 to 4000 characters", cmdErr_cmd_many: "You can save up to 50 commands",
+  cmdTip: "Type “/” to choose a command",
+});
+STRINGS.en.hints.science = "A research assistant for your thesis: it relies on your documents and never invents sources. Type “/” in the message box or pick a command:";
+Object.assign(STRINGS.zh, {
+  cmdDesc: { plan: "论文或课程论文提纲", review: "根据我的文档写文献综述", test: "逐步讲解测试题", edit: "像导师一样审阅文本" },
+  cmdAdd: "自定义命令…", cmdAddDesc: "保存你自己的指令", cmdOwn: "自定义命令", cmdDel: "删除命令 /{name}？",
+  cmdTitle: "自定义命令", cmdSub: "起一个简短的名字，并写下 Lumelle 要做什么。之后在对话中输入“/名字”加上你的文字。",
+  cmdNamePh: "例如：摘要", cmdPromptPh: "例如：为下面的文字写一段摘要：150–200 字，学术风格，包括目的、方法和结果。",
+  cmdSaved: "已保存命令 /{name}", cmdErr_cmd_name: "名字：一个词，最多 32 个字母或数字，不含空格", cmdErr_cmd_taken: "该名字已被内置命令使用", cmdErr_cmd_prompt: "指令：5 到 4000 个字符", cmdErr_cmd_many: "最多可保存 50 个命令",
+  cmdTip: "输入“/”选择命令",
+});
+STRINGS.zh.hints.science = "论文研究助手：以你的文档为依据，绝不编造文献。在输入框中输入“/”或选择一个命令：";
+Object.assign(STRINGS.fr, {
+  cmdDesc: { plan: "plan d’un mémoire ou d’une thèse", review: "revue de littérature d’après mes documents", test: "expliquer un test pas à pas", edit: "relire un texte comme un directeur de recherche" },
+  cmdAdd: "Commande personnelle…", cmdAddDesc: "enregistrer votre propre instruction", cmdOwn: "votre commande", cmdDel: "Supprimer la commande /{name} ?",
+  cmdTitle: "Commande personnelle", cmdSub: "Donnez un nom court et décrivez ce que Lumelle doit faire. Ensuite, tapez « /nom » suivi de votre texte.",
+  cmdNamePh: "par exemple, resume", cmdPromptPh: "Par exemple : Rédige un résumé du texte ci-dessous : 150–200 mots, style académique, objectif, méthodes, résultats.",
+  cmdSaved: "Commande /{name} enregistrée", cmdErr_cmd_name: "Nom : un seul mot, 32 lettres ou chiffres maximum, sans espaces", cmdErr_cmd_taken: "Ce nom appartient à une commande intégrée", cmdErr_cmd_prompt: "Instruction : de 5 à 4000 caractères", cmdErr_cmd_many: "50 commandes maximum",
+  cmdTip: "Tapez « / » pour choisir une commande",
+});
+STRINGS.fr.hints.science = "Un assistant de recherche pour votre mémoire : il s’appuie sur vos documents et n’invente jamais de sources. Tapez « / » dans le champ de message ou choisissez une commande :";
+Object.assign(STRINGS.de, {
+  cmdDesc: { plan: "Gliederung einer Abschluss- oder Hausarbeit", review: "Literaturüberblick aus meinen Dokumenten", test: "einen Test Schritt für Schritt erklären", edit: "einen Text wie ein Betreuer prüfen" },
+  cmdAdd: "Eigener Befehl…", cmdAddDesc: "eigene Anweisung speichern", cmdOwn: "eigener Befehl", cmdDel: "Befehl /{name} löschen?",
+  cmdTitle: "Eigener Befehl", cmdSub: "Gib einen kurzen Namen ein und beschreibe, was Lumelle tun soll. Dann tippst du im Chat „/name“ und deinen Text.",
+  cmdNamePh: "zum Beispiel abstract", cmdPromptPh: "Zum Beispiel: Schreibe ein Abstract zum folgenden Text: 150–200 Wörter, wissenschaftlicher Stil, Ziel, Methoden, Ergebnisse.",
+  cmdSaved: "Befehl /{name} gespeichert", cmdErr_cmd_name: "Name: ein Wort, bis zu 32 Buchstaben oder Ziffern, ohne Leerzeichen", cmdErr_cmd_taken: "Dieser Name gehört zu einem eingebauten Befehl", cmdErr_cmd_prompt: "Anweisung: 5 bis 4000 Zeichen", cmdErr_cmd_many: "Höchstens 50 Befehle",
+  cmdTip: "Tippe „/“, um einen Befehl zu wählen",
+});
+STRINGS.de.hints.science = "Ein Forschungsassistent für deine Abschlussarbeit: Er stützt sich auf deine Dokumente und erfindet nie Quellen. Tippe „/“ ins Nachrichtenfeld oder wähle einen Befehl:";
+// Built-in commands: Russian names in the Russian interface, English names elsewhere (both always work)
+const BUILTIN_CMDS = [["plan", "план"], ["review", "обзор"], ["test", "тест"], ["edit", "редактура"]];
+const cmdName = (pair) => (lang === "ru" ? pair[1] : pair[0]);
+
 const LANG_NAMES = { ru: "Русский", en: "English", zh: "中文", fr: "Français", de: "Deutsch" };
 function detectLang() {
   try { const saved = localStorage.getItem("lumelle-lang"); if (saved && STRINGS[saved]) return saved; } catch (e) {}
@@ -775,6 +857,8 @@ function welcomeHtml() {
     </div>${learnChipsHtml()}</div>`;
 }
 function learnChipsHtml() {
+  if (state.mode === "science") return '<div class="chips">' + BUILTIN_CMDS.map((p) =>
+    `<button class="chip cmd" data-cmd="${cmdName(p)}" title="${escapeHtml(t("cmdDesc")[p[0]])}">/${cmdName(p)}</button>`).join("") + "</div>";
   if (state.mode !== "learn") return '<div class="chips" hidden></div>';
   return '<div class="chips">' + t("learnStarts").map(([label], i) =>
     `<button class="chip" data-learn="${i}">${escapeHtml(label)}</button>`).join("") + "</div>";
@@ -936,6 +1020,91 @@ $("form").onsubmit = (e) => {
   $("input").value = "";
   $("input").style.height = "";
   send(text, images);
+};
+
+// ---------- команды «/…» ----------
+let ownCmds = [];
+let cmdSel = 0;
+async function loadCommands() {
+  try { ownCmds = (await api("/commands")).own; } catch (e) { ownCmds = []; }
+}
+function cmdItems(query) {
+  const q = query.toLowerCase();
+  const items = BUILTIN_CMDS.map((p) => ({ name: cmdName(p), desc: t("cmdDesc")[p[0]], other: p[0] === cmdName(p) ? p[1] : p[0] }))
+    .concat(ownCmds.map((c) => ({ name: c.name, desc: c.prompt, own: true })))
+    .filter((c) => c.name.startsWith(q) || (c.other && c.other.startsWith(q)));
+  items.push({ add: true, name: t("cmdAdd"), desc: t("cmdAddDesc") });
+  return items;
+}
+function updateCmdMenu() {
+  const v = $("input").value;
+  const m = /^\/([\p{L}\p{N}_-]*)$/u.exec(v);
+  const menu = $("cmdMenu");
+  if (!m) { menu.hidden = true; return; }
+  const items = cmdItems(m[1]);
+  cmdSel = Math.min(cmdSel, items.length - 1);
+  menu.innerHTML = items.map((c, i) => `<div class="cmd-item${c.add ? " add" : ""}${i === cmdSel ? " on" : ""}" role="option" data-i="${i}">` +
+    `<b>${c.add ? "+ " + escapeHtml(c.name) : "/" + escapeHtml(c.name)}</b><span class="d">${escapeHtml(c.desc)}</span>` +
+    (c.own ? `<button type="button" class="x" data-del="${escapeHtml(c.name)}" title="${t("del")}">×</button>` : "") + "</div>").join("");
+  menu.hidden = false;
+  menu._items = items;
+}
+function pickCmd(i) {
+  const c = $("cmdMenu")._items[i];
+  $("cmdMenu").hidden = true;
+  if (c.add) { openCmdDlg(); return; }
+  $("input").value = "/" + c.name + " ";
+  $("input").focus();
+}
+$("input").addEventListener("input", () => { cmdSel = 0; updateCmdMenu(); });
+$("input").addEventListener("keydown", (e) => {
+  const menu = $("cmdMenu");
+  if (menu.hidden) return;
+  const n = menu._items.length;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault(); cmdSel = (cmdSel + (e.key === "ArrowDown" ? 1 : n - 1)) % n; updateCmdMenu();
+  } else if (e.key === "Enter" || e.key === "Tab") {
+    e.preventDefault(); e.stopImmediatePropagation(); pickCmd(cmdSel);
+  } else if (e.key === "Escape") { menu.hidden = true; }
+}, true);
+$("input").addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== $("input")) $("cmdMenu").hidden = true; }, 150));
+$("cmdMenu").addEventListener("mousedown", (e) => e.preventDefault());
+$("cmdMenu").addEventListener("click", async (e) => {
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    if (!confirm(t("cmdDel").replace("{name}", del.dataset.del))) return;
+    await api(`/commands/${encodeURIComponent(del.dataset.del)}`, { method: "DELETE" });
+    await loadCommands(); updateCmdMenu(); return;
+  }
+  const it = e.target.closest("[data-i]");
+  if (it) pickCmd(+it.dataset.i);
+});
+$("messages").addEventListener("click", (e) => {
+  const chip = e.target.closest("[data-cmd]");
+  if (!chip) return;
+  $("input").value = "/" + chip.dataset.cmd + " ";
+  $("input").focus();
+});
+function openCmdDlg() {
+  $("cmdName").value = ""; $("cmdPrompt").value = ""; $("cmdMsg").textContent = "";
+  $("cmdDlg").classList.add("open");
+  $("cmdName").focus();
+}
+$("cmdClose").onclick = () => $("cmdDlg").classList.remove("open");
+$("cmdDlg").addEventListener("click", (e) => { if (e.target === $("cmdDlg")) $("cmdDlg").classList.remove("open"); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("cmdDlg").classList.remove("open"); });
+$("cmdForm").onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await api("/commands", { method: "POST", body: { name: $("cmdName").value, prompt: $("cmdPrompt").value } });
+    await loadCommands();
+    $("cmdDlg").classList.remove("open");
+    $("input").value = "/" + res.name + " ";
+    $("input").focus();
+  } catch (err) {
+    const code = err.detail && err.detail.code;
+    $("cmdMsg").textContent = (code && t("cmdErr_" + code)) || err.message;
+  }
 };
 
 // ---------- картинки ----------
@@ -1468,6 +1637,7 @@ function setUser(u) {
   if (u.must_change) askOwnPassword();
   loadModels();
   loadDocs();
+  loadCommands();
 }
 $("loginLang").innerHTML = $("langSel").innerHTML;
 $("loginLang").onchange = () => { $("langSel").value = $("loginLang").value; $("langSel").onchange(); };

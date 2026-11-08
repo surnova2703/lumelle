@@ -40,7 +40,7 @@ DB_PATH = BASE_DIR / "lumelle.db"
 DECKS_DIR = BASE_DIR / "generated"  # презентации, созданные в режиме Slides
 HISTORY_LIMIT = 20  # сколько последних сообщений модель «помнит» в чате
 
-Mode = Literal["chat", "write", "translate", "slides", "learn"]
+Mode = Literal["chat", "write", "translate", "slides", "learn", "science"]
 
 # Инструкции для каждого режима
 MODES = {
@@ -104,7 +104,82 @@ MODES = {
         "Adapt the difficulty to the student's results. Be encouraging but accurate: never call a wrong answer right. "
         "Use the earlier messages of this conversation as context."
     ),
+    "science": (
+        "You are Lumelle, a careful research assistant for a student writing a thesis or dissertation. "
+        "Reply in the user's language (any language); for Russian use a clear academic style.\n"
+        "Rules you never break:\n"
+        "- Never invent sources, authors, titles, years, page numbers, quotes, statistics or survey results. "
+        "Cite only the user's documents (as [1], [2] … from the excerpts) or sources the user named. "
+        "If a claim needs a source you don't have, write [нужен источник] / [source needed].\n"
+        "- If excerpts from the user's documents are given, rely on them first. Clearly separate what comes from "
+        "the documents and what is your general knowledge or suggestion.\n"
+        "- If you are not sure, say so. Do not fill gaps with plausible-sounding details.\n"
+        "- When editing the user's text, keep their meaning and voice; show what you changed and why.\n"
+        "- Be structured: short headings, numbered lists, tables where they help.\n"
+        "- For calculations show the formula, the numbers and the result, step by step.\n"
+        "- The work belongs to the student: explain your reasoning so they can check it and write in their own words.\n"
+        "If an image is attached (a page, a table, a chart, a task), read it carefully first. "
+        "Use the earlier messages of this conversation as context."
+    ),
 }
+
+# Команды «/…»: короткое слово в начале сообщения заменяется подробной инструкцией.
+# У каждой встроенной команды есть русское и английское имя.
+COMMANDS = {
+    "plan": {
+        "names": ("план", "plan"),
+        "prompt": (
+            "Make a plan (outline) for a thesis/dissertation on the topic below. If no topic is given, ask for the topic, "
+            "the field and the type of work (bachelor, master, PhD) and stop. Structure:\n"
+            "1) Introduction: relevance, problem, aim, 4-6 objectives (matching the chapters), object, subject, "
+            "hypothesis (if suitable), methods, scientific novelty, practical significance.\n"
+            "2) Chapter 1 (theory), Chapter 2 (analysis), Chapter 3 (proposals / solution) — each with 2-4 numbered "
+            "sections (1.1, 1.2 …) and one line on what goes into each section.\n"
+            "3) Conclusion and the kinds of sources needed for the reference list (do not invent concrete titles).\n"
+            "If the user's documents are given, build the plan on them and mention which document fits which section. "
+            "End with 2-3 questions that would help to make the plan more precise."
+        ),
+    },
+    "review": {
+        "names": ("обзор", "review"),
+        "prompt": (
+            "Write a literature review on the topic below, based ONLY on the user's documents (the excerpts [1], [2] …). "
+            "If no excerpts are given, do not invent any sources: say that the user should upload the articles in "
+            "«Documents» and turn on «From my documents», then suggest what kinds of sources to look for and stop.\n"
+            "Structure: 1) the main approaches or groups of views; 2) for each source — author and year only if they are "
+            "in the text, the main idea, the method, the findings, with a reference [n]; 3) comparison: where the authors "
+            "agree and disagree; 4) the gap — what is not studied enough, which the student's work can fill; "
+            "5) a reference list of ONLY these sources in the style of GOST R 7.0.100-2018, leaving [нет данных] where "
+            "the documents lack a detail."
+        ),
+    },
+    "test": {
+        "names": ("тест", "test"),
+        "prompt": (
+            "Go through the test or tasks below (text or image) and explain each one step by step, so the student "
+            "understands the topic. For every question: 1) the question in a few words; 2) the correct answer; "
+            "3) why it is correct — the rule, definition or formula, and for calculations every step with the numbers; "
+            "4) briefly why the other options are wrong. If a question is ambiguous or you are not sure, say so and "
+            "explain both readings. If the user's documents are given, check the answers against them and cite [n]. "
+            "End with a short table: question → answer → key idea, and 1-2 topics worth repeating."
+        ),
+    },
+    "edit": {
+        "names": ("редактура", "edit"),
+        "prompt": (
+            "Review the text below as a strict but kind academic supervisor. Do NOT rewrite the whole text.\n"
+            "1) Overall impression in 2-3 sentences and a mark: ready / needs minor edits / needs serious work.\n"
+            "2) Structure and logic: is the aim clear, do the parts connect, are the conclusions supported.\n"
+            "3) Scientific style: colloquial words, repetitions, too long sentences, vague words, wrong terms.\n"
+            "4) Claims without a source — mark them [нужен источник].\n"
+            "5) A table «Было → Стало → Почему» with the 5-10 most important fixes (spelling, grammar, punctuation, style).\n"
+            "6) Three priorities: what to fix first.\n"
+            "If no text is given, ask the user to paste it."
+        ),
+    },
+}
+COMMAND_NAMES = {name: key for key, c in COMMANDS.items() for name in c["names"]}
+COMMAND_RE = re.compile(r"^/([\w-]{1,32})(?:\s+|$)(.*)", re.S)
 
 # «Температура»: ниже = точнее и предсказуемее, выше = креативнее
 # Interface languages: the model uses them for the default translation direction
@@ -119,7 +194,7 @@ def system_prompt(mode: str, ui_lang: Optional[str]) -> str:
     return prompt + f" The user's interface language is {ui}: use it when the message itself has no clear language."
 
 
-TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1, "slides": 0.5, "learn": 0.4}
+TEMPERATURE = {"chat": 0.4, "write": 0.7, "translate": 0.1, "slides": 0.5, "learn": 0.4, "science": 0.3}
 
 app = FastAPI(title="Lumelle AI")
 
@@ -252,6 +327,12 @@ def init_db():
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS commands (
+                owner TEXT NOT NULL,
+                name TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                PRIMARY KEY (owner, name)
             );
             CREATE TABLE IF NOT EXISTS sessions (
                 token TEXT PRIMARY KEY,
@@ -521,6 +602,7 @@ def delete_user(name: str, user: dict = Depends(admin_only)):
         conn.execute("DELETE FROM chats WHERE owner = ?", (name,))
         conn.execute("DELETE FROM doc_chunks WHERE doc_id IN (SELECT id FROM documents WHERE owner = ?)", (name,))
         conn.execute("DELETE FROM documents WHERE owner = ?", (name,))
+        conn.execute("DELETE FROM commands WHERE owner = ?", (name,))
         conn.execute("DELETE FROM sessions WHERE user = ?", (name,))
         conn.execute("DELETE FROM users WHERE name = ?", (name,))
     return {"deleted": name}
@@ -599,6 +681,59 @@ def delete_document(doc_id: int, user: dict = Depends(current_user)):
         conn.execute("DELETE FROM doc_chunks WHERE doc_id = ?", (doc_id,))
         conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
     return {"deleted": doc_id}
+
+
+# ---------- команды «/…» ----------
+
+def resolve_command(owner: str, text: str):
+    """«/тест вопрос» → (инструкция, «вопрос»); None, если это не команда."""
+    m = COMMAND_RE.match(text.strip())
+    if not m:
+        return None
+    name, rest = m.group(1).lower(), m.group(2).strip()
+    if name in COMMAND_NAMES:
+        return COMMANDS[COMMAND_NAMES[name]]["prompt"], rest
+    with db() as conn:
+        row = conn.execute("SELECT prompt FROM commands WHERE owner = ? AND name = ?", (owner, name)).fetchone()
+    return (row["prompt"], rest) if row else None
+
+
+class NewCommand(BaseModel):
+    name: str
+    prompt: str
+
+
+@app.get("/commands", summary="Команды «/…»: встроенные и свои")
+def list_commands(user: dict = Depends(current_user)):
+    with db() as conn:
+        own = conn.execute("SELECT name, prompt FROM commands WHERE owner = ? ORDER BY name", (user["name"],)).fetchall()
+    return {"builtin": [{"key": k, "names": list(c["names"])} for k, c in COMMANDS.items()],
+            "own": [dict(r) for r in own]}
+
+
+@app.post("/commands", summary="Добавить или изменить свою команду")
+def save_command(req: NewCommand, user: dict = Depends(current_user)):
+    name = req.name.strip().lstrip("/").lower()
+    prompt = req.prompt.strip()
+    if not re.fullmatch(r"[\w-]{1,32}", name):
+        raise HTTPException(status_code=400, detail={"code": "cmd_name"})
+    if name in COMMAND_NAMES:
+        raise HTTPException(status_code=400, detail={"code": "cmd_taken"})
+    if not 5 <= len(prompt) <= 4000:
+        raise HTTPException(status_code=400, detail={"code": "cmd_prompt"})
+    with db() as conn:
+        if conn.execute("SELECT COUNT(*) FROM commands WHERE owner = ?", (user["name"],)).fetchone()[0] >= 50 and \
+                not conn.execute("SELECT 1 FROM commands WHERE owner = ? AND name = ?", (user["name"], name)).fetchone():
+            raise HTTPException(status_code=400, detail={"code": "cmd_many"})
+        conn.execute("INSERT OR REPLACE INTO commands (owner, name, prompt) VALUES (?, ?, ?)", (user["name"], name, prompt))
+    return {"name": name}
+
+
+@app.delete("/commands/{name}", summary="Удалить свою команду")
+def delete_command(name: str, user: dict = Depends(current_user)):
+    with db() as conn:
+        conn.execute("DELETE FROM commands WHERE owner = ? AND name = ?", (user["name"], name.lower()))
+    return {"deleted": name}
 
 
 # ---------- выбор модели ----------
@@ -758,14 +893,22 @@ async def ask_in_chat(chat_id: int, req: ChatMessage, user: dict = Depends(curre
     for m in messages:
         m.pop("_images")
     text = req.text.strip() or "Answer the question in the image."
+    mode = chat["mode"]
+    question = req.text.strip()
+    command = resolve_command(user["name"], text)
+    if command:  # «/тест …» → подробная инструкция + текст пользователя; отвечает научный ассистент
+        instruction, question = command
+        text = instruction + ("\n\n---\n" + question if question else
+                              ("\n\n(The material is in the attached image.)" if req.images else ""))
+        mode = "science"
     current = {"role": "user", "content": text}
     if req.images:
         current["images"] = req.images
     messages.append(current)
 
-    context, sources = docs_context(user["name"], req.text) if req.use_docs and req.text.strip() else ("", [])
-    answer = await answer_for(chat["mode"], messages, req.think, req.ui_lang, context)
-    if sources and chat["mode"] != "slides":
+    context, sources = docs_context(user["name"], question) if req.use_docs and question else ("", [])
+    answer = await answer_for(mode, messages, req.think, req.ui_lang, context)
+    if sources and mode != "slides":
         answer += "\n\n📎 " + "; ".join(sources)
 
     with db() as conn:

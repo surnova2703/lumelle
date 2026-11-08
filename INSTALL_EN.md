@@ -81,6 +81,22 @@ While the default passwords are set, use `--lan` only on your home network or th
 
 Press **Documents** on the left and upload .docx, .pdf, .txt or .md files (up to 15 MB). Turn on **From my documents** at the bottom: Lumelle looks for the answer in your files and shows where it comes from (📎 file — part number). The search works offline without an extra model; ask in the language the document is written in. Scanned PDFs without text can't be read. Only you see your documents.
 
+
+## Science and “/” commands
+
+**Science** mode is a research assistant for a thesis. It relies on your documents, separates them from general knowledge and never invents sources: if a source is missing, it writes [source needed].
+
+Type **“/”** in the message box to see the commands. They work in any mode:
+
+| Command | What it does |
+|---|---|
+| `/plan topic` | a thesis outline: introduction, chapters and sections, conclusion |
+| `/review topic` | a literature review from your documents only (turn on “From my documents”) |
+| `/test` + text or a screenshot | goes through a test: the answer, a step-by-step explanation, why the other options are wrong |
+| `/edit` + text | a supervisor-style review: structure, style, a “before → after → why” table |
+
+**Your own command:** type “/”, pick **“+ Your own command…”**, choose a name (for example `abstract`) and write the instruction. Delete it with the × in the same list. Russian names (`/план`, `/обзор`, `/тест`, `/редактура`) work too.
+
 ## Voice
 
 - **🔊 Read aloud** under every answer and the **“Read answers aloud”** checkbox at the bottom. The system voices speak (on a Mac you can add more in System Settings → Accessibility → Spoken Content → System Voice → Manage Voices); no internet needed.

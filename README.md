@@ -2,7 +2,7 @@
 
 **A private AI assistant that runs entirely on your own laptop. No internet, no cloud, no data leaks.**
 
-Lumelle runs on Windows, macOS and Linux. It combines a local open-source language model with a small web app. It has five modes: **Chat**, **Write**, **Translate**, **Slides** and **Learn**. Conversations are saved locally, and the model remembers the context of each chat.
+Lumelle runs on Windows, macOS and Linux. It combines a local open-source language model with a small web app. It has six modes: **Chat**, **Write**, **Translate**, **Slides**, **Learn** and **Science**. Conversations are saved locally, and the model remembers the context of each chat.
 
 ![Lumelle AI interface](docs/screenshot-en.png)
 
@@ -15,6 +15,7 @@ Lumelle runs on Windows, macOS and Linux. It combines a local open-source langua
 - **Slides**: give a topic and get a slide plan, speaker notes and a ready PowerPoint file (.pptx) to download
 - **Learn**: a language tutor (English by default, or any language you name): finds your level, explains grammar, gives exercises and checks them, teaches words, practises conversation and corrects your mistakes
 - **Documents**: upload .docx / .pdf / .txt / .md and turn on “From my documents”; Lumelle finds the relevant parts with offline keyword search (BM25, no extra model) and shows which file and part the answer comes from
+- **Science mode and “/” commands**: a research assistant that never invents sources; `/plan`, `/review`, `/test`, `/edit` (also in Russian: `/план`, `/обзор`, `/тест`, `/редактура`) and your own saved commands
 - **Model picker**: admin chooses which downloaded Ollama model answers (default `qwen3:8b`) and can switch back at any time
 - **Train your own model**: [`training/`](training/README.md) distils qwen3:8b into a small Qwen3‑1.7B with MLX LoRA on a Mac and adds it to Ollama as `lumelle-mini`
 - **Voice**: 🎤 records your question and a local Whisper model (faster-whisper) turns it into text; 🔊 and “Read answers aloud” speak the answers with the system voices. With read-aloud on, Lumelle works as a voice conversation
@@ -39,7 +40,7 @@ FastAPI backend (main.py) ──── SQLite (lumelle.db): chats and messages
 Ollama ──── qwen3:8b (local LLM)
 ```
 
-The backend adds a system prompt and a temperature for the chat's mode (chat 0.4, write 0.7, translate 0.1, slides 0.5, learn 0.4), loads the chat history from SQLite and sends everything to the model through the Ollama API.
+The backend adds a system prompt and a temperature for the chat's mode (chat 0.4, write 0.7, translate 0.1, slides 0.5, learn 0.4, science 0.3), loads the chat history from SQLite and sends everything to the model through the Ollama API.
 
 ## Tech stack
 
@@ -103,6 +104,9 @@ Phones and tablets (iPhone, Android) open Lumelle in the browser when the comput
 | `GET` | `/documents` | My documents |
 | `POST` | `/documents` | Upload a document (multipart `file`) |
 | `DELETE` | `/documents/{id}` | Delete a document |
+| `GET` | `/commands` | Built-in and my own “/” commands |
+| `POST` | `/commands` | Save my own command (`name`, `prompt`) |
+| `DELETE` | `/commands/{name}` | Delete my own command |
 | `GET` | `/models` | Downloaded models and the current one |
 | `POST` | `/models/current` | Choose the answering model (admin only) |
 | `POST` | `/transcribe` | Speech to text (multipart `audio`), local Whisper |
