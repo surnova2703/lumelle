@@ -109,6 +109,17 @@ Type **“/”** in the message box to see the commands. They work in any mode:
 
 **Your own command:** type “/”, pick **“+ Your own command…”**, choose a name (for example `abstract`) and write the instruction. Delete it with the × in the same list. Russian names (`/план`, `/обзор`, `/тест`, `/редактура`) work too.
 
+
+## Online models (optional)
+
+Lumelle works fully offline. If you have an API key for Claude, ChatGPT or Perplexity, you can connect it: at the bottom open **Model → ⚙ Online models…**, paste the key and press Save. Lumelle checks the key and suggests a model; then choose it in the Model list, and “☁ Online” appears next to it.
+
+- Internet and a topped-up API balance are needed. A normal subscription (Claude Pro, ChatGPT Plus) does not include the API.
+- The question, the chat history and the found parts of your documents go to that company.
+- Images and slides always use the local model, and guests always use the local one.
+- Without a connection the local model answers, with a note under the answer.
+- The key is stored only on this computer, in lumelle.db.
+
 ## Voice
 
 - **🔊 Read aloud** under every answer and the **“Read answers aloud”** checkbox at the bottom. The system voices speak (on a Mac you can add more in System Settings → Accessibility → Spoken Content → System Voice → Manage Voices); no internet needed.

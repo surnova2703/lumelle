@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import cloud
 from docs_search import extract_text, hybrid, split_chunks
 from slides import SLIDES_SCHEMA, build_pptx, clean_deck, outline_markdown
 
@@ -214,7 +215,7 @@ async def warm_up_model():
         try:
             async with httpx.AsyncClient(timeout=300) as client:
                 await client.post(OLLAMA_URL.replace("/api/chat", "/api/generate"),
-                                  json={"model": current_model(), "keep_alive": KEEP_ALIVE})
+                                  json={"model": local_model(), "keep_alive": KEEP_ALIVE})
         except httpx.HTTPError:
             pass  # Ollama не запущена — run.py уже подсказал, что делать
     asyncio.create_task(load())
@@ -391,6 +392,26 @@ def current_model() -> str:
     return row["value"] if row else MODEL
 
 
+def local_model() -> str:
+    """Модель Ollama: выбранная, а если выбрана онлайн-модель — модель по умолчанию."""
+    m = current_model()
+    return MODEL if m.startswith("cloud:") else m
+
+
+def setting(key: str) -> Optional[str]:
+    with db() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def set_setting(key: str, value: Optional[str]):
+    with db() as conn:
+        if value is None:
+            conn.execute("DELETE FROM settings WHERE key = ?", (key,))
+        else:
+            conn.execute("INSERT OR REPLACE INTO settings VALUES (?, ?)", (key, value))
+
+
 async def ollama_models() -> List[str]:
     async with httpx.AsyncClient(timeout=5) as client:
         r = await client.get(OLLAMA_URL.replace("/api/chat", "/api/tags"))
@@ -398,9 +419,23 @@ async def ollama_models() -> List[str]:
 
 
 async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_lang: Optional[str] = None,
-                     context: str = "") -> str:
+                     context: str = "", cloud_ok: bool = False) -> str:
     has_images = any(m.get("images") for m in messages)
-    model = VISION_MODEL if has_images else current_model()
+    chosen = current_model()
+    note = ""
+    # Онлайн-модель: только для владельца (это его ключ и его деньги), только текст и не для файлов презентаций
+    if chosen.startswith("cloud:") and cloud_ok and not has_images and fmt is None:
+        provider = chosen.split(":", 1)[1]
+        key, cmodel = setting(f"cloud_key_{provider}"), setting(f"cloud_model_{provider}")
+        if key and cmodel:
+            try:
+                text = await cloud.ask(provider, key, cmodel, system_prompt(mode, ui_lang) + context,
+                                       messages, TEMPERATURE[mode])
+                if text:
+                    return text
+            except cloud.CloudError as e:
+                note = f"\n\n⚠️ {e}. Ответила локальная модель {MODEL}."
+    model = VISION_MODEL if has_images else local_model()
     payload = {
         "model": model,
         "messages": [{"role": "system", "content": system_prompt(mode, ui_lang) + context}] + messages,
@@ -426,14 +461,14 @@ async def call_model(mode: str, messages: List[dict], think: bool, fmt=None, ui_
         )
     if r.status_code >= 400:
         raise HTTPException(status_code=502, detail=f"Ollama error: {r.text[:300]}")
-    return r.json()["message"]["content"].strip()
+    return r.json()["message"]["content"].strip() + note
 
 
 async def answer_for(mode: str, messages: List[dict], think: bool, ui_lang: Optional[str] = None,
-                     context: str = "") -> str:
+                     context: str = "", cloud_ok: bool = False) -> str:
     """Ответ модели; в режиме Slides — план слайдов + готовый .pptx."""
     if mode != "slides":
-        return await call_model(mode, messages, think, ui_lang=ui_lang, context=context)
+        return await call_model(mode, messages, think, ui_lang=ui_lang, context=context, cloud_ok=cloud_ok)
     raw = await call_model(mode, messages, think, fmt=SLIDES_SCHEMA, ui_lang=ui_lang, context=context)
     try:
         deck = clean_deck(json.loads(raw))
@@ -888,11 +923,23 @@ async def list_models(user: dict = Depends(current_user)):
         names = []
     # модели для картинок и распознавания речи отвечать на текст не умеют — прячем их из списка
     text_models = [n for n in names if "-vl" not in n and "embed" not in n]
-    return {"models": text_models, "current": current_model(), "default": MODEL}
+    online = []
+    if user["role"] == "admin":
+        for pid, p in cloud.PROVIDERS.items():
+            m = setting(f"cloud_model_{pid}")
+            if setting(f"cloud_key_{pid}") and m:
+                online.append({"name": f"cloud:{pid}", "label": f"{p['label']} · {m}"})
+    return {"models": text_models, "online": online, "current": current_model(), "default": MODEL}
 
 
 @app.post("/models/current", summary="Выбрать модель (только admin)")
 async def choose_model(req: ModelChoice, user: dict = Depends(admin_only)):
+    if req.name.startswith("cloud:"):
+        pid = req.name.split(":", 1)[1]
+        if pid not in cloud.PROVIDERS or not setting(f"cloud_key_{pid}"):
+            raise HTTPException(status_code=404, detail="Add the API key first")
+        set_setting("model", req.name)
+        return {"current": req.name}
     try:
         names = await ollama_models()
     except (httpx.HTTPError, ValueError):
@@ -906,6 +953,61 @@ async def choose_model(req: ModelChoice, user: dict = Depends(admin_only)):
             conn.execute("INSERT OR REPLACE INTO settings VALUES ('model', ?)",
                          (req.name,))
     return {"current": current_model()}
+
+
+# ---------- онлайн-модели (по API-ключам владельца) ----------
+
+class CloudSettings(BaseModel):
+    provider: str
+    key: Optional[str] = None    # None — не менять; "" — удалить ключ
+    model: Optional[str] = None
+
+
+@app.get("/cloud", summary="Онлайн-модели: какие ключи добавлены (только admin)")
+def cloud_settings(user: dict = Depends(admin_only)):
+    out = []
+    for pid, p in cloud.PROVIDERS.items():
+        key = setting(f"cloud_key_{pid}")
+        out.append({"id": pid, "label": p["label"], "keys_url": p["keys_url"], "has_key": bool(key),
+                    "key_end": key[-4:] if key else "", "model": setting(f"cloud_model_{pid}") or ""})
+    return {"providers": out}
+
+
+@app.get("/cloud/{provider}/models", summary="Модели, доступные по ключу (нужен интернет)")
+async def cloud_models(provider: str, user: dict = Depends(admin_only)):
+    key = setting(f"cloud_key_{provider}")
+    if provider not in cloud.PROVIDERS or not key:
+        raise HTTPException(status_code=404, detail="No key")
+    try:
+        return {"models": await cloud.list_models(provider, key)}
+    except cloud.CloudError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.post("/cloud", summary="Сохранить ключ или модель (только admin)")
+async def save_cloud(req: CloudSettings, user: dict = Depends(admin_only)):
+    pid = req.provider
+    if pid not in cloud.PROVIDERS:
+        raise HTTPException(status_code=404, detail="Unknown provider")
+    models = None
+    if req.key is not None:
+        key = req.key.strip()
+        if not key:  # удалить ключ; если эта модель была выбрана — вернуться к локальной
+            set_setting(f"cloud_key_{pid}", None)
+            set_setting(f"cloud_model_{pid}", None)
+            if current_model() == f"cloud:{pid}":
+                set_setting("model", None)
+            return {"ok": True}
+        try:
+            models = await cloud.list_models(pid, key)  # заодно проверяем, что ключ работает
+        except cloud.CloudError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        set_setting(f"cloud_key_{pid}", key)
+        if not req.model and not setting(f"cloud_model_{pid}"):
+            set_setting(f"cloud_model_{pid}", cloud.default_model(pid, models))
+    if req.model:
+        set_setting(f"cloud_model_{pid}", req.model.strip()[:100])
+    return {"ok": True, "models": models, "model": setting(f"cloud_model_{pid}")}
 
 
 # ---------- распознавание речи ----------
@@ -971,7 +1073,7 @@ async def ask(req: AskRequest, user: dict = Depends(current_user)):
     msg = {"role": "user", "content": req.text}
     if req.images:
         msg["images"] = req.images
-    answer = await answer_for(req.mode, [msg], req.think, req.ui_lang)
+    answer = await answer_for(req.mode, [msg], req.think, req.ui_lang, cloud_ok=user["role"] == "admin")
     return {"mode": req.mode, "answer": answer}
 
 
@@ -1048,7 +1150,7 @@ async def ask_in_chat(chat_id: int, req: ChatMessage, user: dict = Depends(curre
     if req.use_docs and question:
         k = 8 if command and command[0] == COMMANDS["review"]["prompt"] else 4  # обзору нужно больше источников
         context, sources = await docs_context(user["name"], question, req.collection, req.strict_docs, k)
-    answer = await answer_for(mode, messages, req.think, req.ui_lang, context)
+    answer = await answer_for(mode, messages, req.think, req.ui_lang, context, cloud_ok=user["role"] == "admin")
     if sources and mode != "slides":
         answer += "\n\n📎 " + "; ".join(sources)
 

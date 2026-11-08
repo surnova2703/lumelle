@@ -269,6 +269,21 @@
   .doc-sem code { display: inline-block; margin-top: 4px; padding: 2px 6px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); user-select: all; }
   .doc-sem.on { color: var(--ink); }
   @media (max-width: 560px) { .doc-row { flex-wrap: wrap; } .doc-row .nm { flex-basis: 100%; } }
+  .cloud-note { font-size: 12px; color: #B45309; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+  .cloud-note[hidden] { display: none; }
+  .cloud-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .cloud-card .top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .cloud-card .top b { font-size: 16px; }
+  .cloud-card .st { font-size: 12px; color: var(--muted); }
+  .cloud-card .st.ok { color: #15803D; }
+  .cloud-card .top a { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .cloud-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .cloud-row input, .cloud-row select { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; }
+  .cloud-row button { padding: 8px 12px; border: 0; border-radius: 8px; background: var(--ink); color: var(--bg); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .cloud-row button.del { background: none; color: #C2410C; border: 1px solid var(--line); }
+  .cloud-row .lbl { font-size: 13px; color: var(--muted); min-width: 60px; }
+  .cloud-card .msg { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 0; }
+  .cloud-card .msg:empty { display: none; }
   .doc-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 14px; }
   .doc-drop { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px; border: 2px dashed var(--line); border-radius: 14px; cursor: pointer; text-align: center; color: var(--muted); font-size: 13px; }
   .doc-drop b { color: var(--ink); font-size: 15px; }
@@ -545,6 +560,14 @@
     <button class="must-go" data-i18n="save"></button>
   </form>
 </div>
+<div class="chooser" id="cloudDlg" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
+  <div class="chooser-box" style="width:min(560px,100%);max-height:90dvh;overflow-y:auto">
+    <button type="button" class="icon-btn close-x" id="cloudClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="cloudTitle" data-i18n="cloudTitle"></h3>
+    <p data-i18n="cloudSub"></p>
+    <div id="cloudList"></div>
+  </div>
+</div>
 <div class="chooser" id="chooser" role="dialog" aria-modal="true" aria-labelledby="chTitle">
   <div class="chooser-box">
     <button class="icon-btn close-x" id="chClose" data-i18n-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -597,7 +620,7 @@
     </form>
     <div class="options">
       <span class="opt-left"><label><input type="checkbox" id="think"> <span data-i18n="think"></span></label><span id="useDocsLbl" class="docs-pick" hidden><label><input type="checkbox" id="useDocs"> <span data-i18n="useDocs"></span></label><select id="docsCol" hidden></select><label id="strictLbl"><input type="checkbox" id="strictDocs"> <span data-i18n="strictDocs"></span></label></span><label><input type="checkbox" id="speakToggle"> <span data-i18n="readAloud"></span></label></span>
-      <span class="opt-right"><label class="model-pick" id="modelPick" hidden><span data-i18n="modelLabel"></span> <select id="modelSel"></select></label><span class="offline" data-i18n="offline"></span></span>
+      <span class="opt-right"><label class="model-pick" id="modelPick" hidden><span data-i18n="modelLabel"></span> <select id="modelSel"></select></label><span class="cloud-note" id="cloudNote" hidden></span><span class="offline" data-i18n="offline"></span></span>
     </div>
   </div>
 </main>
@@ -818,6 +841,23 @@ STRINGS.en.modeNames = { chat: "Chat", write: "Write", translate: "Translate", s
 STRINGS.zh.modeNames = { chat: "聊天", write: "写作", translate: "翻译", slides: "幻灯片", learn: "学语言", science: "科研" };
 STRINGS.fr.modeNames = { chat: "Discussion", write: "Rédaction", translate: "Traduction", slides: "Diapos", learn: "Langues", science: "Recherche" };
 STRINGS.de.modeNames = { chat: "Chat", write: "Schreiben", translate: "Übersetzen", slides: "Folien", learn: "Sprachen", science: "Forschung" };
+// Онлайн-модели
+Object.assign(STRINGS.ru, { cloudOpt: "⚙ Онлайн-модели…", cloudTitle: "Онлайн-модели",
+  cloudSub: "Claude, ChatGPT и Perplexity по вашему API-ключу. Нужны интернет и пополненный баланс API (обычная подписка не подходит). Когда выбрана онлайн-модель, вопрос, история чата и найденные фрагменты документов уходят этой компании. Картинки и презентации всегда делает локальная модель, гости всегда работают на локальной. Ключ хранится только на этом компьютере.",
+  cloudKeyPh: "Вставьте API-ключ", cloudSave: "Сохранить", cloudHasKey: "ключ …{end}", cloudNoKey: "нет ключа", cloudRemove: "Удалить ключ", cloudGetKey: "Где взять ключ", cloudModel: "Модель", cloudChecking: "Проверяю ключ…", cloudOk: "Ключ работает. Выберите модель внизу экрана в списке «Модель».", cloudOn: "☁ Онлайн: {name}", cloudConfirmDel: "Удалить ключ {name}?", cloudNoNet: "Список моделей не загрузился (нужен интернет)." });
+Object.assign(STRINGS.en, { cloudOpt: "⚙ Online models…", cloudTitle: "Online models",
+  cloudSub: "Claude, ChatGPT and Perplexity with your own API key. They need internet and a topped-up API balance (a normal subscription doesn’t work). When an online model is chosen, the question, the chat history and the found parts of your documents go to that company. Images and slides always use the local model, and guests always use the local one. The key is stored only on this computer.",
+  cloudKeyPh: "Paste the API key", cloudSave: "Save", cloudHasKey: "key …{end}", cloudNoKey: "no key", cloudRemove: "Remove key", cloudGetKey: "Where to get a key", cloudModel: "Model", cloudChecking: "Checking the key…", cloudOk: "The key works. Choose the model in the “Model” list at the bottom.", cloudOn: "☁ Online: {name}", cloudConfirmDel: "Remove the {name} key?", cloudNoNet: "Couldn’t load the model list (internet needed)." });
+Object.assign(STRINGS.zh, { cloudOpt: "⚙ 在线模型…", cloudTitle: "在线模型",
+  cloudSub: "使用你自己的 API 密钥接入 Claude、ChatGPT 和 Perplexity。需要联网并为 API 充值（普通订阅不适用）。选择在线模型后，问题、对话记录和找到的文档片段会发送给该公司。图片和演示文稿始终由本地模型处理，访客始终使用本地模型。密钥只保存在这台电脑上。",
+  cloudKeyPh: "粘贴 API 密钥", cloudSave: "保存", cloudHasKey: "密钥 …{end}", cloudNoKey: "无密钥", cloudRemove: "删除密钥", cloudGetKey: "获取密钥", cloudModel: "模型", cloudChecking: "正在检查密钥…", cloudOk: "密钥可用。请在下方“模型”列表中选择。", cloudOn: "☁ 在线：{name}", cloudConfirmDel: "删除 {name} 的密钥？", cloudNoNet: "无法加载模型列表（需要联网）。" });
+Object.assign(STRINGS.fr, { cloudOpt: "⚙ Modèles en ligne…", cloudTitle: "Modèles en ligne",
+  cloudSub: "Claude, ChatGPT et Perplexity avec votre propre clé API. Il faut internet et un solde API approvisionné (un abonnement classique ne suffit pas). Quand un modèle en ligne est choisi, la question, l’historique et les passages trouvés dans vos documents sont envoyés à cette entreprise. Les images et les présentations utilisent toujours le modèle local, les invités aussi. La clé reste uniquement sur cet ordinateur.",
+  cloudKeyPh: "Collez la clé API", cloudSave: "Enregistrer", cloudHasKey: "clé …{end}", cloudNoKey: "pas de clé", cloudRemove: "Supprimer la clé", cloudGetKey: "Obtenir une clé", cloudModel: "Modèle", cloudChecking: "Vérification de la clé…", cloudOk: "La clé fonctionne. Choisissez le modèle dans la liste « Modèle » en bas.", cloudOn: "☁ En ligne : {name}", cloudConfirmDel: "Supprimer la clé {name} ?", cloudNoNet: "Liste des modèles indisponible (internet requis)." });
+Object.assign(STRINGS.de, { cloudOpt: "⚙ Online-Modelle…", cloudTitle: "Online-Modelle",
+  cloudSub: "Claude, ChatGPT und Perplexity mit deinem eigenen API-Schlüssel. Nötig sind Internet und ein aufgeladenes API-Guthaben (ein normales Abo reicht nicht). Wenn ein Online-Modell gewählt ist, gehen Frage, Chatverlauf und gefundene Teile deiner Dokumente an diese Firma. Bilder und Präsentationen nutzen immer das lokale Modell, Gäste ebenso. Der Schlüssel bleibt nur auf diesem Computer.",
+  cloudKeyPh: "API-Schlüssel einfügen", cloudSave: "Speichern", cloudHasKey: "Schlüssel …{end}", cloudNoKey: "kein Schlüssel", cloudRemove: "Schlüssel löschen", cloudGetKey: "Schlüssel holen", cloudModel: "Modell", cloudChecking: "Schlüssel wird geprüft…", cloudOk: "Der Schlüssel funktioniert. Wähle das Modell unten in der Liste „Modell“.", cloudOn: "☁ Online: {name}", cloudConfirmDel: "Schlüssel für {name} löschen?", cloudNoNet: "Modellliste nicht geladen (Internet nötig)." });
+
 // Built-in commands: Russian names in the Russian interface, English names elsewhere (both always work)
 const BUILTIN_CMDS = [["plan", "план"], ["review", "обзор"], ["test", "тест"], ["edit", "редактура"]];
 const cmdName = (pair) => (lang === "ru" ? pair[1] : pair[0]);
@@ -1596,22 +1636,80 @@ async function transcribeAudio(blob) {
 }
 
 // ---------- выбор модели (admin) ----------
+const CLOUD_SETUP = "__cloud";
+let modelsInfo = null;
 async function loadModels() {
-  if (!me || me.role !== "admin") { $("modelPick").hidden = true; return; }
+  if (!me || me.role !== "admin") { $("modelPick").hidden = true; $("cloudNote").hidden = true; return; }
   try {
-    const r = await api("/models");
-    const names = r.models.includes(r.current) ? r.models : [r.current, ...r.models];
-    $("modelSel").innerHTML = names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}${n === r.default ? " · " + t("modelDefault") : ""}</option>`).join("");
+    const r = modelsInfo = await api("/models");
+    const local = r.models.includes(r.current) || r.current.startsWith("cloud:") ? r.models : [r.current, ...r.models];
+    $("modelSel").innerHTML = local.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}${n === r.default ? " · " + t("modelDefault") : ""}</option>`).join("")
+      + (r.online || []).map((o) => `<option value="${escapeHtml(o.name)}">☁ ${escapeHtml(o.label)}</option>`).join("")
+      + `<option value="${CLOUD_SETUP}">${escapeHtml(t("cloudOpt"))}</option>`;
     $("modelSel").value = r.current;
-    $("modelPick").hidden = names.length < 2;
+    $("modelPick").hidden = false;
+    const on = (r.online || []).find((o) => o.name === r.current);
+    $("cloudNote").hidden = !on;
+    if (on) $("cloudNote").textContent = t("cloudOn").replace("{name}", on.label);
   } catch (e) { $("modelPick").hidden = true; }
 }
 $("modelSel").onchange = async () => {
+  if ($("modelSel").value === CLOUD_SETUP) { $("modelSel").value = modelsInfo ? modelsInfo.current : ""; openCloud(); return; }
   try {
     const r = await api("/models/current", { method: "POST", body: { name: $("modelSel").value } });
-    addMessage("error", t("modelSwitched").replace("{name}", r.current)).classList.add("note");
-  } catch (err) { addMessage("error", err.message); loadModels(); }
+    const label = $("modelSel").selectedOptions[0]?.textContent || r.current;
+    addMessage("error", t("modelSwitched").replace("{name}", label)).classList.add("note");
+  } catch (err) { addMessage("error", err.message); }
+  loadModels();
 };
+
+// ---------- онлайн-модели ----------
+async function openCloud() {
+  $("cloudDlg").classList.add("open");
+  await renderCloud();
+}
+async function renderCloud() {
+  let r;
+  try { r = await api("/cloud"); } catch (e) { $("cloudList").textContent = e.message; return; }
+  $("cloudList").innerHTML = r.providers.map((p) => `<div class="cloud-card" data-p="${p.id}">
+    <div class="top"><b>${escapeHtml(p.label)}</b><span class="st${p.has_key ? " ok" : ""}">${p.has_key ? escapeHtml(t("cloudHasKey").replace("{end}", p.key_end)) : escapeHtml(t("cloudNoKey"))}</span>
+      <a href="${escapeHtml(p.keys_url)}" target="_blank" rel="noopener">${escapeHtml(t("cloudGetKey"))} ↗</a></div>
+    <div class="cloud-row"><input type="password" autocomplete="off" placeholder="${escapeHtml(t("cloudKeyPh"))}" data-key><button type="button" data-save>${escapeHtml(t("cloudSave"))}</button>${p.has_key ? `<button type="button" class="del" data-remove>${escapeHtml(t("cloudRemove"))}</button>` : ""}</div>
+    ${p.has_key ? `<div class="cloud-row"><span class="lbl">${escapeHtml(t("cloudModel"))}</span><select data-model><option>${escapeHtml(p.model)}</option></select></div>` : ""}
+    <div class="msg"></div></div>`).join("");
+  for (const p of r.providers.filter((x) => x.has_key)) fillCloudModels(p.id, p.model);
+}
+async function fillCloudModels(pid, current) {
+  const card = document.querySelector(`.cloud-card[data-p="${pid}"]`);
+  try {
+    const { models } = await api(`/cloud/${pid}/models`);
+    const list = models.includes(current) ? models : [current, ...models];
+    card.querySelector("[data-model]").innerHTML = list.map((m) => `<option${m === current ? " selected" : ""}>${escapeHtml(m)}</option>`).join("");
+  } catch (e) { card.querySelector(".msg").textContent = t("cloudNoNet") + " " + e.message; }
+}
+$("cloudList").addEventListener("click", async (e) => {
+  const card = e.target.closest(".cloud-card"); if (!card) return;
+  const pid = card.dataset.p, msg = card.querySelector(".msg");
+  if (e.target.closest("[data-save]")) {
+    const key = card.querySelector("[data-key]").value.trim(); if (!key) return;
+    msg.textContent = t("cloudChecking");
+    try { await api("/cloud", { method: "POST", body: { provider: pid, key } }); await renderCloud();
+      document.querySelector(`.cloud-card[data-p="${pid}"] .msg`).textContent = t("cloudOk"); loadModels(); }
+    catch (err) { msg.textContent = err.message; }
+  } else if (e.target.closest("[data-remove]")) {
+    if (!confirm(t("cloudConfirmDel").replace("{name}", card.querySelector("b").textContent))) return;
+    await api("/cloud", { method: "POST", body: { provider: pid, key: "" } }); await renderCloud(); loadModels();
+  }
+});
+$("cloudList").addEventListener("change", async (e) => {
+  const sel = e.target.closest("[data-model]"); if (!sel) return;
+  const pid = sel.closest(".cloud-card").dataset.p;
+  try { await api("/cloud", { method: "POST", body: { provider: pid, model: sel.value } }); loadModels(); }
+  catch (err) { sel.closest(".cloud-card").querySelector(".msg").textContent = err.message; }
+});
+$("cloudClose").onclick = () => $("cloudDlg").classList.remove("open");
+$("cloudDlg").addEventListener("click", (e) => { if (e.target === $("cloudDlg")) $("cloudDlg").classList.remove("open"); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("cloudDlg").classList.remove("open"); });
 
 // ---------- документы ----------
 let docsCache = [];
