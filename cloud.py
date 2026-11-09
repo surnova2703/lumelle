@@ -14,7 +14,7 @@ import httpx
 
 PROVIDERS = {
     "gigachat": {"label": "GigaChat", "keys_url": "https://developers.sber.ru/docs/ru/gigachat/individuals-quickstart"},
-    "yandex": {"label": "YandexGPT", "keys_url": "https://aistudio.yandex.ru/docs/ru/ai-studio/quickstart/"},
+    "yandex": {"label": "Alice / YandexGPT", "keys_url": "https://aistudio.yandex.ru/docs/ru/ai-studio/quickstart/"},
     "anthropic": {"label": "Claude", "keys_url": "https://console.anthropic.com/settings/keys"},
     "openai": {"label": "ChatGPT", "keys_url": "https://platform.openai.com/api-keys"},
     "perplexity": {"label": "Perplexity", "keys_url": "https://www.perplexity.ai/account/api"},
@@ -63,6 +63,9 @@ async def _giga_token(client: httpx.AsyncClient, key: str) -> str:
 # YandexGPT: the stored key is "<folder ID>|<API key>" (both come from Yandex AI Studio)
 YANDEX_MODELS = "https://ai.api.cloud.yandex.net/v1/models"
 YANDEX_CHAT = "https://llm.api.cloud.yandex.net/v1/chat/completions"
+# Used only if the service doesn't return its list; «aliceai-llm» is the model of Alice (Алиса AI)
+YANDEX_FALLBACK = ("aliceai-llm", "aliceai-llm-flash", "yandexgpt-5.1", "yandexgpt-5-pro", "deepseek-v4.1-flash",
+                   "qwen3.6-35b-a3b")
 
 
 def _yandex_parts(key: str):
@@ -149,7 +152,7 @@ async def list_models(provider: str, key: str) -> List[str]:
             if "error 404" not in str(e):
                 raise
             ids = []
-        return ids or [f"gpt://{folder}/{m}" for m in ("yandexgpt/latest", "yandexgpt-lite/latest", "yandexgpt/rc")]
+        return ids or [f"gpt://{folder}/{m}" for m in YANDEX_FALLBACK]
     if provider == "gigachat":
         data = await _giga("GET", "/models", key)
         ids = [m.get("id", "") for m in data.get("data", [])]
@@ -175,7 +178,11 @@ def default_model(provider: str, models: List[str]) -> Optional[str]:
     if not models:
         return None
     prefer = {"anthropic": ("sonnet",), "openai": ("mini",), "perplexity": ("fast",), "gigachat": ("2-Max", "Max", "Pro"),
-              "yandex": ("/yandexgpt/latest", "/yandexgpt/", "yandexgpt")}[provider]
+              "yandex": ("yandexgpt-5.1", "yandexgpt-5-pro", "/yandexgpt/latest", "yandexgpt")}[provider]
+    if provider == "yandex":  # Alice AI LLM first: the newest and largest-context Yandex model
+        for m in models:
+            if m.rstrip("/").endswith(("/aliceai-llm", "/aliceai-llm/latest")):
+                return m
     for p in prefer:  # in the order of preference
         for m in models:
             if p in m:
