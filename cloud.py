@@ -19,6 +19,67 @@ PROVIDERS = {
     "openai": {"label": "ChatGPT", "keys_url": "https://platform.openai.com/api-keys"},
     "perplexity": {"label": "Perplexity", "keys_url": "https://www.perplexity.ai/account/api"},
 }
+# "Other service": any OpenAI-compatible API. The stored key is "<base URL>|<API key>", the provider id is c_<host>.
+PRESETS = {
+    "openrouter": {"label": "OpenRouter", "base": "https://openrouter.ai/api/v1", "keys_url": "https://openrouter.ai/settings/keys"},
+    "groq": {"label": "Groq", "base": "https://api.groq.com/openai/v1", "keys_url": "https://console.groq.com/keys"},
+    "mistral": {"label": "Mistral", "base": "https://api.mistral.ai/v1", "keys_url": "https://console.mistral.ai/api-keys"},
+}
+NOT_CHAT = ("whisper", "tts", "audio", "embed", "guard", "moderation", "transcri", "image", "vision-preview", "ocr", "rerank")
+
+
+def is_custom(provider: str) -> bool:
+    return provider.startswith("c_")
+
+
+def clean_base(url: str) -> str:
+    url = (url or "").strip().rstrip("/")
+    for tail in ("/chat/completions", "/models"):
+        if url.endswith(tail):
+            url = url[: -len(tail)]
+    if not (url.startswith("https://") or url.startswith(("http://localhost", "http://127.0.0.1"))):
+        raise CloudError("The address must start with https://")
+    return url
+
+
+def custom_id(base: str) -> str:
+    host = base.split("://", 1)[1].split("/", 1)[0].split(":")[0]
+    return "c_" + "".join(ch if ch.isalnum() else "_" for ch in host.lower())[:40]
+
+
+def custom_label(base: str) -> str:
+    for p in PRESETS.values():
+        if base == p["base"]:
+            return p["label"]
+    return base.split("://", 1)[1].split("/", 1)[0]
+
+
+def _custom_parts(key: str):
+    base, _, api_key = key.partition("|")
+    if not base or not api_key:
+        raise CloudError("Both the address and the API key are needed")
+    return base, api_key
+
+
+def label_of(provider: str, key: str = "") -> str:
+    if provider in PROVIDERS:
+        return PROVIDERS[provider]["label"]
+    return custom_label(key.partition("|")[0]) if key else provider
+
+
+async def _custom(method: str, path: str, key: str, json_body=None) -> dict:
+    base, api_key = _custom_parts(key)
+    label = custom_label(base)
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            r = await client.request(method, base + path, json=json_body, headers={
+                "Authorization": f"Bearer {api_key}", "X-Title": "Lumelle"})
+            _check(r, label)
+            return r.json()
+    except httpx.HTTPError:
+        raise CloudError(f"{label}: no connection — check the internet")
+
+
 # Perplexity's Agent API has no model list: the "effort" decides how deep it searches
 PERPLEXITY_EFFORTS = ["fast", "low", "medium", "high"]
 TIMEOUT = httpx.Timeout(300, connect=10)
@@ -139,7 +200,12 @@ def _check(r: httpx.Response, label: str):
 
 async def list_models(provider: str, key: str) -> List[str]:
     """Models this key can use, newest/most suitable first. Also checks that the key works."""
-    label = PROVIDERS[provider]["label"]
+    label = label_of(provider, key)
+    if is_custom(provider):
+        data = await _custom("GET", "/models", key)
+        ids = [m.get("id", "") for m in data.get("data", []) if isinstance(m, dict)]
+        ids = [i for i in ids if i and not any(w in i.lower() for w in NOT_CHAT)]
+        return sorted(ids, key=lambda i: (not i.endswith(":free"), i))  # free models first (OpenRouter)
     if provider == "perplexity":
         return PERPLEXITY_EFFORTS
     if provider == "yandex":
@@ -178,7 +244,10 @@ def default_model(provider: str, models: List[str]) -> Optional[str]:
     if not models:
         return None
     prefer = {"anthropic": ("sonnet",), "openai": ("mini",), "perplexity": ("fast",), "gigachat": ("2-Max", "Max", "Pro"),
-              "yandex": ("yandexgpt-5.1", "yandexgpt-5-pro", "/yandexgpt/latest", "yandexgpt")}[provider]
+              "yandex": ("yandexgpt-5.1", "yandexgpt-5-pro", "/yandexgpt/latest", "yandexgpt")}.get(provider, ())
+    if is_custom(provider):
+        free = [m for m in models if m.endswith(":free")]
+        return free[0] if free else models[0]
     if provider == "yandex":  # Alice AI LLM first: the newest and largest-context Yandex model
         for m in models:
             if m.rstrip("/").endswith(("/aliceai-llm", "/aliceai-llm/latest")):
@@ -218,8 +287,17 @@ def _sources(data: dict) -> str:
 
 async def ask(provider: str, key: str, model: str, system: str, messages: List[dict], temperature: float) -> str:
     """One answer from an online model. messages: [{role: user|assistant, content: str}]."""
-    label = PROVIDERS[provider]["label"]
+    label = label_of(provider, key)
     msgs = [{"role": m["role"], "content": m["content"]} for m in messages if m.get("content")]
+    if is_custom(provider):
+        data = await _custom("POST", "/chat/completions", key,
+                             {"model": model, "messages": [{"role": "system", "content": system}] + msgs,
+                              "temperature": temperature})
+        choices = data.get("choices") or [{}]
+        text = (choices[0].get("message", {}).get("content") or "").strip()
+        if not text:
+            raise CloudError(f"{label}: empty answer")
+        return text
     if provider == "yandex":
         folder, _ = _yandex_parts(key)
         if not model.startswith("gpt://"):

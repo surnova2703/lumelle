@@ -116,6 +116,7 @@ Lumelle works fully offline. You can also connect an online model with a key: **
 
 - **GigaChat (free):** open developers.sber.ru, sign in with Sber ID, create a GigaChat API project for an individual (Freemium) and copy the **Authorization key**. The Russian root certificate GigaChat needs is already in the `certs` folder; nothing to install in the system.
 - **YandexGPT:** in Yandex AI Studio (aistudio.yandex.ru) create an API key and copy the **folder ID** (starts with `b1g`) and the key — Lumelle has two fields for them. Paid with a Russian card; new Yandex Cloud accounts usually get a 60-day starter grant (link the card when creating the billing account).
+- **Other service:** in the last card pick OpenRouter, Groq or Mistral (they have free limits for open models) or type the address of any OpenAI-compatible service, then paste the key. You can add several.
 - Claude, ChatGPT, Perplexity: a topped-up API balance is needed; a normal subscription (Claude Pro, ChatGPT Plus) does not include the API.
 - The question, the chat history and the found parts of your documents go to that company.
 - Images and slides always use the local model, and guests always use the local one.

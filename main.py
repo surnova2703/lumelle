@@ -915,6 +915,14 @@ class ModelChoice(BaseModel):
     name: str
 
 
+def provider_ids() -> List[str]:
+    """Встроенные онлайн-сервисы + «другие сервисы» (OpenAI-совместимые), добавленные владельцем."""
+    with db() as conn:
+        custom = [r["key"][len("cloud_key_"):] for r in
+                  conn.execute("SELECT key FROM settings WHERE key LIKE 'cloud_key_c_%' ORDER BY key")]
+    return list(cloud.PROVIDERS) + custom
+
+
 @app.get("/models", summary="Скачанные модели и какая сейчас отвечает")
 async def list_models(user: dict = Depends(current_user)):
     try:
@@ -925,10 +933,10 @@ async def list_models(user: dict = Depends(current_user)):
     text_models = [n for n in names if "-vl" not in n and "embed" not in n]
     online = []
     if user["role"] == "admin":
-        for pid, p in cloud.PROVIDERS.items():
-            m = setting(f"cloud_model_{pid}")
-            if setting(f"cloud_key_{pid}") and m:
-                online.append({"name": f"cloud:{pid}", "label": f"{p['label']} · {cloud.yandex_short(m)}"})
+        for pid in provider_ids():
+            m, key = setting(f"cloud_model_{pid}"), setting(f"cloud_key_{pid}")
+            if key and m:
+                online.append({"name": f"cloud:{pid}", "label": f"{cloud.label_of(pid, key)} · {cloud.yandex_short(m)}"})
     return {"models": text_models, "online": online, "current": current_model(), "default": MODEL}
 
 
@@ -936,7 +944,7 @@ async def list_models(user: dict = Depends(current_user)):
 async def choose_model(req: ModelChoice, user: dict = Depends(admin_only)):
     if req.name.startswith("cloud:"):
         pid = req.name.split(":", 1)[1]
-        if pid not in cloud.PROVIDERS or not setting(f"cloud_key_{pid}"):
+        if pid not in provider_ids() or not setting(f"cloud_key_{pid}"):
             raise HTTPException(status_code=404, detail="Add the API key first")
         set_setting("model", req.name)
         return {"current": req.name}
@@ -962,22 +970,30 @@ class CloudSettings(BaseModel):
     key: Optional[str] = None    # None — не менять; "" — удалить ключ
     model: Optional[str] = None
     folder: Optional[str] = None  # YandexGPT: ID каталога
+    base: Optional[str] = None    # «Другой сервис»: адрес API, например https://openrouter.ai/api/v1
 
 
 @app.get("/cloud", summary="Онлайн-модели: какие ключи добавлены (только admin)")
 def cloud_settings(user: dict = Depends(admin_only)):
     out = []
-    for pid, p in cloud.PROVIDERS.items():
+    for pid in provider_ids():
         key = setting(f"cloud_key_{pid}")
+        if cloud.is_custom(pid):
+            base = (key or "").partition("|")[0]
+            keys_url = next((p["keys_url"] for p in cloud.PRESETS.values() if p["base"] == base), "")
+            out.append({"id": pid, "label": cloud.custom_label(base), "keys_url": keys_url, "has_key": True, "custom": True,
+                        "base": base, "key_end": key[-4:], "model": setting(f"cloud_model_{pid}") or ""})
+            continue
+        p = cloud.PROVIDERS[pid]
         out.append({"id": pid, "label": p["label"], "keys_url": p["keys_url"], "has_key": bool(key),
                     "key_end": key[-4:] if key else "", "model": setting(f"cloud_model_{pid}") or ""})
-    return {"providers": out}
+    return {"providers": out, "presets": cloud.PRESETS}
 
 
 @app.get("/cloud/{provider}/models", summary="Модели, доступные по ключу (нужен интернет)")
 async def cloud_models(provider: str, user: dict = Depends(admin_only)):
     key = setting(f"cloud_key_{provider}")
-    if provider not in cloud.PROVIDERS or not key:
+    if provider not in provider_ids() or not key:
         raise HTTPException(status_code=404, detail="No key")
     try:
         return {"models": await cloud.list_models(provider, key)}
@@ -988,7 +1004,21 @@ async def cloud_models(provider: str, user: dict = Depends(admin_only)):
 @app.post("/cloud", summary="Сохранить ключ или модель (только admin)")
 async def save_cloud(req: CloudSettings, user: dict = Depends(admin_only)):
     pid = req.provider
-    if pid not in cloud.PROVIDERS:
+    if pid == "custom":  # новый «другой сервис»: id берётся из адреса
+        try:
+            base = cloud.clean_base(req.base or "")
+        except cloud.CloudError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        pid = cloud.custom_id(base)
+        if not (req.key or "").strip():
+            raise HTTPException(status_code=400, detail="Paste the API key")
+        req.key = f"{base}|{req.key.strip()}"
+    elif cloud.is_custom(pid):
+        if pid not in provider_ids():
+            raise HTTPException(status_code=404, detail="Unknown service")
+        if req.key:  # новый ключ к уже добавленному сервису
+            req.key = f"{setting(f'cloud_key_{pid}').partition('|')[0]}|{req.key.strip()}"
+    elif pid not in cloud.PROVIDERS:
         raise HTTPException(status_code=404, detail="Unknown provider")
     models = None
     if req.key is not None:
@@ -1012,7 +1042,7 @@ async def save_cloud(req: CloudSettings, user: dict = Depends(admin_only)):
             set_setting(f"cloud_model_{pid}", cloud.default_model(pid, models))
     if req.model:
         set_setting(f"cloud_model_{pid}", req.model.strip()[:100])
-    return {"ok": True, "models": models, "model": setting(f"cloud_model_{pid}")}
+    return {"ok": True, "id": pid, "models": models, "model": setting(f"cloud_model_{pid}")}
 
 
 # ---------- распознавание речи ----------

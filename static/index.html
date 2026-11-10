@@ -420,7 +420,7 @@
   }
   .opt-right { display: flex; align-items: center; gap: 12px; }
   .model-pick { display: flex; align-items: center; gap: 6px; }
-  .model-pick:not([hidden]) + .offline { display: none; }
+  .model-pick:not([hidden]) ~ .offline { display: none; }
   .model-pick select { font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; max-width: 170px; }
   @media (max-width: 760px) { .options { flex-wrap: wrap; gap: 4px 12px; } .opt-right .offline { display: none; } }
   .opt-left { display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -844,19 +844,19 @@ STRINGS.de.modeNames = { chat: "Chat", write: "Schreiben", translate: "Übersetz
 // Онлайн-модели
 Object.assign(STRINGS.ru, { cloudOpt: "⚙ Онлайн-модели…", cloudTitle: "Онлайн-модели",
   cloudSub: "GigaChat, YandexGPT, Claude, ChatGPT и Perplexity по вашему API-ключу. Нужен интернет. GigaChat бесплатен для физлиц (вход через Сбер ID на developers.sber.ru); остальным нужен пополненный баланс API — обычная подписка не подходит. Когда выбрана онлайн-модель, вопрос, история чата и найденные фрагменты документов уходят этой компании. Картинки и презентации всегда делает локальная модель, гости всегда работают на локальной. Ключ хранится только на этом компьютере.",
-  cloudKeyPh: "Вставьте API-ключ", cloudKeyPhGiga: "Ключ авторизации (Authorization key)", cloudFolderPh: "ID каталога (folder ID)", cloudSave: "Сохранить", cloudHasKey: "ключ …{end}", cloudNoKey: "нет ключа", cloudRemove: "Удалить ключ", cloudGetKey: "Где взять ключ", cloudModel: "Модель", cloudChecking: "Проверяю ключ…", cloudOk: "Ключ работает. Выберите модель внизу экрана в списке «Модель».", cloudOn: "☁ Онлайн: {name}", cloudConfirmDel: "Удалить ключ {name}?", cloudNoNet: "Список моделей не загрузился (нужен интернет)." });
+  cloudKeyPh: "Вставьте API-ключ", cloudKeyPhGiga: "Ключ авторизации (Authorization key)", cloudFolderPh: "ID каталога (folder ID)", cloudAddTitle: "+ Другой сервис", cloudAddSub: "Любой сервис, совместимый с OpenAI. У OpenRouter, Groq и Mistral есть бесплатные лимиты на открытые модели (Llama, Gemma, DeepSeek, Mistral). Доступ из России зависит от сервиса.", cloudOther: "Другой адрес…", cloudBasePh: "Адрес API, например https://…/v1", cloudSave: "Сохранить", cloudHasKey: "ключ …{end}", cloudNoKey: "нет ключа", cloudRemove: "Удалить ключ", cloudGetKey: "Где взять ключ", cloudModel: "Модель", cloudChecking: "Проверяю ключ…", cloudOk: "Ключ работает. Выберите модель внизу экрана в списке «Модель».", cloudOn: "☁ Онлайн: {name}", cloudConfirmDel: "Удалить ключ {name}?", cloudNoNet: "Список моделей не загрузился (нужен интернет)." });
 Object.assign(STRINGS.en, { cloudOpt: "⚙ Online models…", cloudTitle: "Online models",
   cloudSub: "GigaChat, YandexGPT, Claude, ChatGPT and Perplexity with your own API key. Internet is needed. GigaChat is free for individuals (sign in with Sber ID at developers.sber.ru); the others need a topped-up API balance — a normal subscription doesn’t work. When an online model is chosen, the question, the chat history and the found parts of your documents go to that company. Images and slides always use the local model, and guests always use the local one. The key is stored only on this computer.",
-  cloudKeyPh: "Paste the API key", cloudKeyPhGiga: "Authorization key", cloudFolderPh: "Folder ID", cloudSave: "Save", cloudHasKey: "key …{end}", cloudNoKey: "no key", cloudRemove: "Remove key", cloudGetKey: "Where to get a key", cloudModel: "Model", cloudChecking: "Checking the key…", cloudOk: "The key works. Choose the model in the “Model” list at the bottom.", cloudOn: "☁ Online: {name}", cloudConfirmDel: "Remove the {name} key?", cloudNoNet: "Couldn’t load the model list (internet needed)." });
+  cloudKeyPh: "Paste the API key", cloudKeyPhGiga: "Authorization key", cloudFolderPh: "Folder ID", cloudAddTitle: "+ Other service", cloudAddSub: "Any OpenAI-compatible service. OpenRouter, Groq and Mistral have free limits for open models (Llama, Gemma, DeepSeek, Mistral).", cloudOther: "Other address…", cloudBasePh: "API address, for example https://…/v1", cloudSave: "Save", cloudHasKey: "key …{end}", cloudNoKey: "no key", cloudRemove: "Remove key", cloudGetKey: "Where to get a key", cloudModel: "Model", cloudChecking: "Checking the key…", cloudOk: "The key works. Choose the model in the “Model” list at the bottom.", cloudOn: "☁ Online: {name}", cloudConfirmDel: "Remove the {name} key?", cloudNoNet: "Couldn’t load the model list (internet needed)." });
 Object.assign(STRINGS.zh, { cloudOpt: "⚙ 在线模型…", cloudTitle: "在线模型",
   cloudSub: "使用你自己的 API 密钥接入 GigaChat、YandexGPT、Claude、ChatGPT 和 Perplexity。需要联网。GigaChat 对个人免费（在 developers.sber.ru 用 Sber ID 登录）；其他服务需要为 API 充值（普通订阅不适用）。选择在线模型后，问题、对话记录和找到的文档片段会发送给该公司。图片和演示文稿始终由本地模型处理，访客始终使用本地模型。密钥只保存在这台电脑上。",
-  cloudKeyPh: "粘贴 API 密钥", cloudKeyPhGiga: "授权密钥（Authorization key）", cloudFolderPh: "目录 ID（folder ID）", cloudSave: "保存", cloudHasKey: "密钥 …{end}", cloudNoKey: "无密钥", cloudRemove: "删除密钥", cloudGetKey: "获取密钥", cloudModel: "模型", cloudChecking: "正在检查密钥…", cloudOk: "密钥可用。请在下方“模型”列表中选择。", cloudOn: "☁ 在线：{name}", cloudConfirmDel: "删除 {name} 的密钥？", cloudNoNet: "无法加载模型列表（需要联网）。" });
+  cloudKeyPh: "粘贴 API 密钥", cloudKeyPhGiga: "授权密钥（Authorization key）", cloudFolderPh: "目录 ID（folder ID）", cloudAddTitle: "+ 其他服务", cloudAddSub: "任何兼容 OpenAI 的服务。OpenRouter、Groq 和 Mistral 为开源模型（Llama、Gemma、DeepSeek、Mistral）提供免费额度。", cloudOther: "其他地址…", cloudBasePh: "API 地址，例如 https://…/v1", cloudSave: "保存", cloudHasKey: "密钥 …{end}", cloudNoKey: "无密钥", cloudRemove: "删除密钥", cloudGetKey: "获取密钥", cloudModel: "模型", cloudChecking: "正在检查密钥…", cloudOk: "密钥可用。请在下方“模型”列表中选择。", cloudOn: "☁ 在线：{name}", cloudConfirmDel: "删除 {name} 的密钥？", cloudNoNet: "无法加载模型列表（需要联网）。" });
 Object.assign(STRINGS.fr, { cloudOpt: "⚙ Modèles en ligne…", cloudTitle: "Modèles en ligne",
   cloudSub: "GigaChat, YandexGPT, Claude, ChatGPT et Perplexity avec votre propre clé API. Il faut internet. GigaChat est gratuit pour les particuliers (connexion Sber ID sur developers.sber.ru) ; les autres demandent un solde API approvisionné — un abonnement classique ne suffit pas. Quand un modèle en ligne est choisi, la question, l’historique et les passages trouvés dans vos documents sont envoyés à cette entreprise. Les images et les présentations utilisent toujours le modèle local, les invités aussi. La clé reste uniquement sur cet ordinateur.",
-  cloudKeyPh: "Collez la clé API", cloudKeyPhGiga: "Clé d’autorisation (Authorization key)", cloudFolderPh: "ID du dossier (folder ID)", cloudSave: "Enregistrer", cloudHasKey: "clé …{end}", cloudNoKey: "pas de clé", cloudRemove: "Supprimer la clé", cloudGetKey: "Obtenir une clé", cloudModel: "Modèle", cloudChecking: "Vérification de la clé…", cloudOk: "La clé fonctionne. Choisissez le modèle dans la liste « Modèle » en bas.", cloudOn: "☁ En ligne : {name}", cloudConfirmDel: "Supprimer la clé {name} ?", cloudNoNet: "Liste des modèles indisponible (internet requis)." });
+  cloudKeyPh: "Collez la clé API", cloudKeyPhGiga: "Clé d’autorisation (Authorization key)", cloudFolderPh: "ID du dossier (folder ID)", cloudAddTitle: "+ Autre service", cloudAddSub: "Tout service compatible OpenAI. OpenRouter, Groq et Mistral offrent des quotas gratuits pour des modèles ouverts (Llama, Gemma, DeepSeek, Mistral).", cloudOther: "Autre adresse…", cloudBasePh: "Adresse de l’API, par exemple https://…/v1", cloudSave: "Enregistrer", cloudHasKey: "clé …{end}", cloudNoKey: "pas de clé", cloudRemove: "Supprimer la clé", cloudGetKey: "Obtenir une clé", cloudModel: "Modèle", cloudChecking: "Vérification de la clé…", cloudOk: "La clé fonctionne. Choisissez le modèle dans la liste « Modèle » en bas.", cloudOn: "☁ En ligne : {name}", cloudConfirmDel: "Supprimer la clé {name} ?", cloudNoNet: "Liste des modèles indisponible (internet requis)." });
 Object.assign(STRINGS.de, { cloudOpt: "⚙ Online-Modelle…", cloudTitle: "Online-Modelle",
   cloudSub: "GigaChat, YandexGPT, Claude, ChatGPT und Perplexity mit deinem eigenen API-Schlüssel. Internet ist nötig. GigaChat ist für Privatpersonen kostenlos (Anmeldung mit Sber ID auf developers.sber.ru); die anderen brauchen ein aufgeladenes API-Guthaben — ein normales Abo reicht nicht. Wenn ein Online-Modell gewählt ist, gehen Frage, Chatverlauf und gefundene Teile deiner Dokumente an diese Firma. Bilder und Präsentationen nutzen immer das lokale Modell, Gäste ebenso. Der Schlüssel bleibt nur auf diesem Computer.",
-  cloudKeyPh: "API-Schlüssel einfügen", cloudKeyPhGiga: "Autorisierungsschlüssel (Authorization key)", cloudFolderPh: "Ordner-ID (folder ID)", cloudSave: "Speichern", cloudHasKey: "Schlüssel …{end}", cloudNoKey: "kein Schlüssel", cloudRemove: "Schlüssel löschen", cloudGetKey: "Schlüssel holen", cloudModel: "Modell", cloudChecking: "Schlüssel wird geprüft…", cloudOk: "Der Schlüssel funktioniert. Wähle das Modell unten in der Liste „Modell“.", cloudOn: "☁ Online: {name}", cloudConfirmDel: "Schlüssel für {name} löschen?", cloudNoNet: "Modellliste nicht geladen (Internet nötig)." });
+  cloudKeyPh: "API-Schlüssel einfügen", cloudKeyPhGiga: "Autorisierungsschlüssel (Authorization key)", cloudFolderPh: "Ordner-ID (folder ID)", cloudAddTitle: "+ Anderer Dienst", cloudAddSub: "Jeder OpenAI-kompatible Dienst. OpenRouter, Groq und Mistral haben kostenlose Kontingente für offene Modelle (Llama, Gemma, DeepSeek, Mistral).", cloudOther: "Andere Adresse…", cloudBasePh: "API-Adresse, zum Beispiel https://…/v1", cloudSave: "Speichern", cloudHasKey: "Schlüssel …{end}", cloudNoKey: "kein Schlüssel", cloudRemove: "Schlüssel löschen", cloudGetKey: "Schlüssel holen", cloudModel: "Modell", cloudChecking: "Schlüssel wird geprüft…", cloudOk: "Der Schlüssel funktioniert. Wähle das Modell unten in der Liste „Modell“.", cloudOn: "☁ Online: {name}", cloudConfirmDel: "Schlüssel für {name} löschen?", cloudNoNet: "Modellliste nicht geladen (Internet nötig)." });
 
 // Built-in commands: Russian names in the Russian interface, English names elsewhere (both always work)
 const BUILTIN_CMDS = [["plan", "план"], ["review", "обзор"], ["test", "тест"], ["edit", "редактура"]];
@@ -1673,11 +1673,19 @@ async function renderCloud() {
   try { r = await api("/cloud"); } catch (e) { $("cloudList").textContent = e.message; return; }
   $("cloudList").innerHTML = r.providers.map((p) => `<div class="cloud-card" data-p="${p.id}">
     <div class="top"><b>${escapeHtml(p.label)}</b><span class="st${p.has_key ? " ok" : ""}">${p.has_key ? escapeHtml(t("cloudHasKey").replace("{end}", p.key_end)) : escapeHtml(t("cloudNoKey"))}</span>
-      <a href="${escapeHtml(p.keys_url)}" target="_blank" rel="noopener">${escapeHtml(t("cloudGetKey"))} ↗</a></div>
+      ${p.keys_url ? `<a href="${escapeHtml(p.keys_url)}" target="_blank" rel="noopener">${escapeHtml(t("cloudGetKey"))} ↗</a>` : ""}</div>
+    ${p.custom ? `<div class="st" style="margin:-4px 0 4px">${escapeHtml(p.base)}</div>` : ""}
     ${p.id === "yandex" ? `<div class="cloud-row"><input autocomplete="off" placeholder="${escapeHtml(t("cloudFolderPh"))}" data-folder></div>` : ""}
     <div class="cloud-row"><input type="password" autocomplete="off" placeholder="${escapeHtml(t(p.id === "gigachat" ? "cloudKeyPhGiga" : "cloudKeyPh"))}" data-key><button type="button" data-save>${escapeHtml(t("cloudSave"))}</button>${p.has_key ? `<button type="button" class="del" data-remove>${escapeHtml(t("cloudRemove"))}</button>` : ""}</div>
     ${p.has_key ? `<div class="cloud-row"><span class="lbl">${escapeHtml(t("cloudModel"))}</span><select data-model><option value="${escapeHtml(p.model)}">${escapeHtml(shortModel(p.model))}</option></select></div>` : ""}
-    <div class="msg"></div></div>`).join("");
+    <div class="msg"></div></div>`).join("") + `<div class="cloud-card" data-p="custom">
+    <div class="top"><b>${escapeHtml(t("cloudAddTitle"))}</b></div>
+    <div class="st" style="margin:-4px 0 6px">${escapeHtml(t("cloudAddSub"))}</div>
+    <div class="cloud-row"><select data-preset>${Object.entries(r.presets).map(([k, p]) => `<option value="${escapeHtml(p.base)}" data-keys="${escapeHtml(p.keys_url)}">${escapeHtml(p.label)}</option>`).join("")}<option value="">${escapeHtml(t("cloudOther"))}</option></select>
+      <a data-keys-link href="${escapeHtml(Object.values(r.presets)[0].keys_url)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--muted);white-space:nowrap">${escapeHtml(t("cloudGetKey"))} ↗</a></div>
+    <div class="cloud-row"><input data-base autocomplete="off" placeholder="${escapeHtml(t("cloudBasePh"))}" value="${escapeHtml(Object.values(r.presets)[0].base)}" readonly></div>
+    <div class="cloud-row"><input type="password" autocomplete="off" placeholder="${escapeHtml(t("cloudKeyPh"))}" data-key><button type="button" data-save>${escapeHtml(t("cloudSave"))}</button></div>
+    <div class="msg"></div></div>`;
   for (const p of r.providers.filter((x) => x.has_key)) fillCloudModels(p.id, p.model);
 }
 const shortModel = (m) => (m.startsWith("gpt://") ? m.split("/").slice(3).join("/") : m);
@@ -1695,9 +1703,10 @@ $("cloudList").addEventListener("click", async (e) => {
   if (e.target.closest("[data-save]")) {
     const key = card.querySelector("[data-key]").value.trim(); if (!key) return;
     const folder = card.querySelector("[data-folder]")?.value.trim();
+    const base = card.querySelector("[data-base]")?.value.trim();
     msg.textContent = t("cloudChecking");
-    try { await api("/cloud", { method: "POST", body: { provider: pid, key, folder } }); await renderCloud();
-      document.querySelector(`.cloud-card[data-p="${pid}"] .msg`).textContent = t("cloudOk"); loadModels(); }
+    try { const res = await api("/cloud", { method: "POST", body: { provider: pid, key, folder, base } }); await renderCloud();
+      const done = document.querySelector(`.cloud-card[data-p="${res.id || pid}"] .msg`); if (done) done.textContent = t("cloudOk"); loadModels(); }
     catch (err) { msg.textContent = err.message; }
   } else if (e.target.closest("[data-remove]")) {
     if (!confirm(t("cloudConfirmDel").replace("{name}", card.querySelector("b").textContent))) return;
@@ -1705,6 +1714,13 @@ $("cloudList").addEventListener("click", async (e) => {
   }
 });
 $("cloudList").addEventListener("change", async (e) => {
+  const preset = e.target.closest("[data-preset]");
+  if (preset) {
+    const card = preset.closest(".cloud-card"), base = card.querySelector("[data-base]"), link = card.querySelector("[data-keys-link]");
+    base.value = preset.value; base.readOnly = !!preset.value; if (!preset.value) base.focus();
+    const keys = preset.selectedOptions[0].dataset.keys; link.hidden = !keys; if (keys) link.href = keys;
+    return;
+  }
   const sel = e.target.closest("[data-model]"); if (!sel) return;
   const pid = sel.closest(".cloud-card").dataset.p;
   try { await api("/cloud", { method: "POST", body: { provider: pid, model: sel.value } }); loadModels(); }
